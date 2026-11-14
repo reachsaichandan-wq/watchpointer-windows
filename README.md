@@ -91,7 +91,13 @@ docs/            analysis, architecture, install guides, Bluetooth guide, troubl
 Like the original, the receiver accepts any nearby device that speaks the protocol while it runs. Use *Only accept
 input from the trusted watch* (a convenience filter, not authentication) and stop the receiver when not in use.
 
+## Downloads and verification
+
+Releases (GitHub › Releases) contain `WatchPointer.exe` as a single self-contained file, the unsigned watch `.ipa`,
+SHA-256 checksums and build-provenance attestations. See [docs/RELEASING.md](docs/RELEASING.md) for how to verify a
+download and how releases are made.
+
 ## License
 
-MIT — see [LICENSE](LICENSE). Includes work derived from WatchPointer by Umar Afzal (MIT); see
+Copyright © 2026 sandareddysaichandan. MIT — see [LICENSE](LICENSE). Includes work derived from WatchPointer by Umar Afzal (MIT); see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

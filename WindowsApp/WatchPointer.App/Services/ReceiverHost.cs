@@ -157,6 +157,20 @@ public sealed class ReceiverHost : IAsyncDisposable
 
 public static class AppInfo
 {
+    private static readonly System.Reflection.Assembly Assembly = typeof(AppInfo).Assembly;
+
     public static string Version =>
-        typeof(AppInfo).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
+        Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
+
+    /// <summary>Version plus the git commit the build came from (the SDK appends "+&lt;sha&gt;" in CI builds).</summary>
+    public static string InformationalVersion =>
+        Attribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion is { } v
+            ? (v.IndexOf('+') is var i and > 0 && v.Length > i + 8 ? v[..(i + 8)] : v)
+            : Version;
+
+    public static string Copyright => Attribute<System.Reflection.AssemblyCopyrightAttribute>()?.Copyright ?? "";
+    public static string Author => Attribute<System.Reflection.AssemblyCompanyAttribute>()?.Company ?? "";
+
+    private static T? Attribute<T>() where T : System.Attribute =>
+        (T?)System.Attribute.GetCustomAttribute(Assembly, typeof(T));
 }

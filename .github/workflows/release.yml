@@ -1,0 +1,163 @@
+name: Release
+
+# Push a tag like v1.0.0 to build, test and publish a GitHub Release:
+#   WatchPointer-<version>-win-x64.zip   WatchPointer.exe + watchpointer-cli.exe (self-contained, single file)
+#   WatchPointer-<version>-unsigned.ipa  iPhone app with the embedded watch app (sign with Xcode or a sideloading tool)
+#   SHA256SUMS.txt                       checksums of everything above
+# Every file also gets a signed build-provenance attestation (Sigstore, free), so anyone can prove it was built by
+# this workflow from this repository:  gh attestation verify <file> --repo <owner>/<repo>
+#
+# Optional Authenticode signing with an exportable .pfx: add repository secrets
+#   WINDOWS_CERT_PFX_BASE64   the certificate (.pfx), base64-encoded
+#   WINDOWS_CERT_PASSWORD     its password
+# Note: publicly trusted code-signing certificates issued since June 2023 keep the key in hardware (HSM / cloud
+# signing), so they can't be exported as a .pfx. For those, replace this step with the provider's signing action
+# (e.g. SignPath, Azure Trusted Signing) — see docs/RELEASING.md.
+# Without a certificate the exe is unsigned but still covered by checksums and attestations.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. 1.0.0). Creates a draft release."
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Test
+        run: dotnet test Tests/WatchPointer.Core.Tests -c Release
+
+      - name: Publish (self-contained, single file)
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $common = @("-c", "Release", "-r", "win-x64", "--self-contained", "true", "-o", "out",
+                      "-p:Version=$v", "-p:PublishSingleFile=true", "-p:IncludeNativeLibrariesForSelfExtract=true",
+                      "-p:EnableCompressionInSingleFile=true", "-p:DebugType=embedded")
+          dotnet publish WindowsApp/WatchPointer.App @common
+          dotnet publish WindowsApp/WatchPointer.Tool @common
+          Copy-Item LICENSE, THIRD_PARTY_NOTICES.md, README.md out/
+
+      - name: Sign executables (only if a certificate is configured)
+        shell: pwsh
+        env:
+          PFX: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          if (-not $env:PFX) { Write-Host "No certificate configured: executables stay unsigned."; exit 0 }
+          $pfx = Join-Path $env:RUNNER_TEMP "cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          & $signtool.FullName sign /f $pfx /p $env:PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /d "WatchPointer" out\WatchPointer.exe out\watchpointer-cli.exe
+          if ($LASTEXITCODE -ne 0) { throw "signing failed" }
+          & $signtool.FullName verify /pa out\WatchPointer.exe
+          Remove-Item $pfx
+
+      - name: Zip
+        shell: pwsh
+        run: |
+          $name = "WatchPointer-${{ steps.version.outputs.version }}-win-x64.zip"
+          Compress-Archive -Path out\* -DestinationPath $name
+          (Get-Item $name).Length
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            out/WatchPointer.exe
+            out/watchpointer-cli.exe
+            WatchPointer-*-win-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: WatchPointer-*-win-x64.zip
+
+  watch:
+    runs-on: macos-15
+    needs: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build unsigned .ipa (iPhone app + embedded watch app)
+        working-directory: WatchApp
+        run: |
+          set -euo pipefail
+          V="${{ needs.windows.outputs.version }}"
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild build -project WatchPointer.xcodeproj -scheme WatchPointerPhone -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/phone \
+            MARKETING_VERSION="$V" CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 20
+          APP=build/phone/Build/Products/Release-iphoneos/WatchPointerPhone.app
+          test -d "$APP/Watch/WatchPointer.app"
+          mkdir -p ipa/Payload && cp -R "$APP" ipa/Payload/
+          (cd ipa && zip -qry "../../WatchPointer-$V-unsigned.ipa" Payload)
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: WatchPointer-*-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-watch
+          path: WatchPointer-*-unsigned.ipa
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [windows, watch]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * | tee SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ needs.windows.outputs.version }}"
+          DRAFT=""
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && DRAFT="--draft"
+          cat > notes.md <<EOF
+          WatchPointer for Windows ${V}. Copyright © 2026 sandareddysaichandan, MIT License.
+
+          **Windows:** unzip and run \`WatchPointer.exe\` (no install, no .NET needed). Check the adapter with \`watchpointer-cli.exe ble-check\`.
+          **Watch:** \`WatchPointer-${V}-unsigned.ipa\` must be signed before install; see docs/WATCH_INSTALL.md.
+
+          **Verify your download**
+          - SHA-256: compare with \`SHA256SUMS.txt\` (\`Get-FileHash <file>\` in PowerShell).
+          - Provenance: \`gh attestation verify <file> --repo ${GITHUB_REPOSITORY}\` proves the file was built by this repository's release workflow.
+
+          If Windows SmartScreen shows "unknown publisher", the executable isn't Authenticode-signed; choose More info › Run anyway after verifying it as above.
+          EOF
+          gh release create "v${V}" dist/* --title "WatchPointer ${V}" --notes-file notes.md $DRAFT --target "${GITHUB_SHA}"

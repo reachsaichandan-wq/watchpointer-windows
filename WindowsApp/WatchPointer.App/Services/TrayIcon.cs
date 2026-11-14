@@ -5,15 +5,17 @@ using Forms = System.Windows.Forms;
 
 namespace WatchPointer.App.Services;
 
-/// <summary>Notification-area icon with a small menu. The icon is drawn at runtime (no binary assets needed).</summary>
+/// <summary>Notification-area icon with a small menu. Uses the app icon (Assets/WatchPointer.ico); falls back to
+/// drawing it if the resource can't be read.</summary>
 public sealed class TrayIcon : IDisposable
 {
+    private static readonly Uri IconUri = new("pack://application:,,,/Assets/WatchPointer.ico");
     private readonly Forms.NotifyIcon _icon;
     private readonly Icon _image;
 
     public TrayIcon(Action show, Action togglePause, Action recenter, Action exit)
     {
-        _image = CreateIcon(32);
+        _image = LoadAppIcon(Forms.SystemInformation.SmallIconSize.Width) ?? CreateIcon(32);
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Open WatchPointer", null, (_, _) => show());
         menu.Items.Add("Pause / resume pointer", null, (_, _) => togglePause());
@@ -46,8 +48,20 @@ public sealed class TrayIcon : IDisposable
         return Icon.FromHandle(bitmap.GetHicon());
     }
 
-    public static BitmapSource CreateWindowIcon()
+    private static Icon? LoadAppIcon(int size)
     {
+        try
+        {
+            using var stream = System.Windows.Application.GetResourceStream(IconUri)?.Stream;
+            return stream is null ? null : new Icon(stream, size, size);
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException) { return null; }
+    }
+
+    public static System.Windows.Media.ImageSource CreateWindowIcon()
+    {
+        try { return BitmapFrame.Create(IconUri); }
+        catch (Exception ex) when (ex is IOException or NotSupportedException) { }
         using var icon = CreateIcon(64);
         return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(icon.Handle, System.Windows.Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
     }

@@ -126,7 +126,9 @@ public sealed class AboutViewModel : PageViewModel
 {
     public override string Title => "About";
     public override string Glyph => "";
-    public string Version => $"Version {AppInfo.Version} · protocol v{Core.Protocol.ProtocolConstants.ProtocolVersion}";
+    public string Version => $"Version {AppInfo.InformationalVersion} · protocol v{Core.Protocol.ProtocolConstants.ProtocolVersion}";
+    public string Copyright => $"{AppInfo.Copyright} Author: {AppInfo.Author}.";
+    public string Source => "Source code, releases and checksums: github.com/reachsaichandan-wq/watchpointer-windows";
     public string Credits =>
         "A Windows receiver and companion watch app inspired by WatchPointer by Umar Afzal (github.com/umarz317/WatchPointer, MIT License). " +
         "The Bluetooth protocol, motion model (gravity for elevation, integrated gyro for heading), laser-pointer projection, 1€ filter settings " +

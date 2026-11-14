@@ -19,6 +19,7 @@ settings:
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
+    INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 sandareddysaichandan. MIT License."
     CODE_SIGN_STYLE: Automatic
     # Set DEVELOPMENT_TEAM (your Team ID) when signing on a Mac, e.g. xcodebuild DEVELOPMENT_TEAM=XXXXXXXXXX.
     DEVELOPMENT_TEAM: ""

@@ -6,6 +6,8 @@
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <AssemblyName>watchpointer-cli</AssemblyName>
     <RootNamespace>WatchPointer.Tool</RootNamespace>
+    <ApplicationIcon>..\WatchPointer.App\Assets\WatchPointer.ico</ApplicationIcon>
+    <AssemblyTitle>WatchPointer command-line tool</AssemblyTitle>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WatchPointer.Platform\WatchPointer.Platform.csproj" />

@@ -9,6 +9,8 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
                         <TextBlock Text="WatchPointer for Windows" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Text="{Binding Copyright}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBlock Text="{Binding Source}" Style="{StaticResource Caption}" Margin="0,0,0,12" />
                         <TextBlock Text="{Binding Credits}" TextWrapping="Wrap" Margin="0,0,0,10" LineHeight="21" />
                         <TextBlock Text="{Binding License}" TextWrapping="Wrap" LineHeight="21" />
                     </StackPanel>

@@ -9,12 +9,18 @@
     <AssemblyName>WatchPointer</AssemblyName>
     <RootNamespace>WatchPointer.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\WatchPointer.ico</ApplicationIcon>
+    <AssemblyTitle>WatchPointer</AssemblyTitle>
     <!-- WPF Fluent theme (ThemeMode) is marked experimental. -->
     <!-- WFO0003: the DPI mode is set in app.manifest on purpose, because it's a WPF app (WinForms is only the tray icon). -->
     <NoWarn>$(NoWarn);WPF0001;WFO0003</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WatchPointer.Platform\WatchPointer.Platform.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Regenerate with tools/make-icon.ps1. Used for the exe, the window and the tray. -->
+    <Resource Include="Assets\WatchPointer.ico" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

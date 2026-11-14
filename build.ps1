@@ -29,10 +29,15 @@ if (-not $SkipTests) {
 $out = Join-Path "artifacts" "WatchPointer-$Runtime"
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
 $sc = if ($SelfContained) { "true" } else { "false" }
-dotnet publish WindowsApp/WatchPointer.App -c Release -r $Runtime --self-contained $sc -o $out
+# Self-contained builds become one compressed .exe per program (no .NET install needed, nothing else to copy).
+$single = if ($SelfContained) {
+    @("-p:PublishSingleFile=true", "-p:IncludeNativeLibrariesForSelfExtract=true", "-p:EnableCompressionInSingleFile=true", "-p:DebugType=embedded")
+} else { @() }
+dotnet publish WindowsApp/WatchPointer.App -c Release -r $Runtime --self-contained $sc -o $out @single
 if ($LASTEXITCODE -ne 0) { throw "Publishing the app failed" }
-dotnet publish WindowsApp/WatchPointer.Tool -c Release -r $Runtime --self-contained $sc -o $out
+dotnet publish WindowsApp/WatchPointer.Tool -c Release -r $Runtime --self-contained $sc -o $out @single
 if ($LASTEXITCODE -ne 0) { throw "Publishing the tool failed" }
+Copy-Item LICENSE, THIRD_PARTY_NOTICES.md, README.md -Destination $out
 
 Write-Host ""
 Write-Host "Done: $out\WatchPointer.exe  (CLI: $out\watchpointer-cli.exe ble-check)"

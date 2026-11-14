@@ -8,7 +8,7 @@ public enum PadEvent: Equatable {
     case holdStart(touchDown: TimeInterval)
     /// Released after a hold: mouse button up, just before the lift.
     case holdEnd(at: TimeInterval)
-    case swipe(Gesture, at: TimeInterval)
+    case swipe(WatchGesture, at: TimeInterval)
 }
 
 /// Classifies pad touches into tap / hold (drag) / swipe. Pure state machine; the view feeds it touch events and a

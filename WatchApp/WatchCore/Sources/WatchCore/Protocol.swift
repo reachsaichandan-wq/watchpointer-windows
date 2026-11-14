@@ -22,7 +22,7 @@ public enum PacketKind: UInt8 {
 }
 
 /// v2 gesture ids carried in `.gesture` packets (`a`). The PC maps them to actions per profile.
-public enum Gesture: Int16, CaseIterable {
+public enum WatchGesture: Int16, CaseIterable {
     case swipeLeft = 1, swipeRight = 2, swipeUp = 3, swipeDown = 4
     case handDoubleTap = 5
     case wristFlick = 6

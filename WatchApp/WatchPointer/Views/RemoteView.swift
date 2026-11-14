@@ -7,7 +7,7 @@ struct RemoteView: View {
     @ObservedObject var link: PCLink
     @State private var presses = 0
 
-    private let buttons: [(Gesture, String, String)] = [
+    private let buttons: [(WatchGesture, String, String)] = [
         (.buttonA, "A", "a.circle.fill"),
         (.buttonB, "B", "b.circle.fill"),
         (.buttonC, "C", "c.circle.fill"),

@@ -169,7 +169,7 @@ final class GestureTests: XCTestCase {
     }
 
     func testSwipesInFourDirections() {
-        let cases: [(Double, Double, Gesture)] = [(-40, 0, .swipeLeft), (40, 0, .swipeRight), (0, -40, .swipeUp), (0, 40, .swipeDown)]
+        let cases: [(Double, Double, WatchGesture)] = [(-40, 0, .swipeLeft), (40, 0, .swipeRight), (0, -40, .swipeUp), (0, 40, .swipeDown)]
         for (dx, dy, expected) in cases {
             var c = PadGestureClassifier()
             _ = c.touchDown(at: 0, x: 80, y: 80)

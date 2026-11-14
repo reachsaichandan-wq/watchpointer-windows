@@ -61,7 +61,7 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
         pc.writeValue(Data(bytes), for: input, type: kind == .aim ? .withoutResponse : .withResponse)
     }
 
-    func sendGesture(_ gesture: Gesture, at time: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+    func sendGesture(_ gesture: WatchGesture, at time: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         send(.gesture, gesture.rawValue, at: time)
     }
 

@@ -25,6 +25,7 @@ return command switch
     "listen" => await Listen(),
     "simulate" => await Simulate(),
     "bench" => Bench(),
+    "track" => Track(),
     "displays" => Displays(),
     _ => Help(),
 };
@@ -52,6 +53,7 @@ int Help()
           watchpointer-cli simulate [--pattern circle|figureeight|sweep|holdstill|steps] [--seconds N] [--live]
                                                  Drive the real engine with a virtual watch. --live moves the cursor.
           watchpointer-cli bench [--seconds N]       Measure engine CPU cost per packet and per tick
+          watchpointer-cli track                     Cursor-vs-hand accuracy for each responsiveness preset
           watchpointer-cli displays                  Print the monitor layout as WatchPointer sees it
         """);
     return 0;
@@ -195,6 +197,21 @@ int Bench()
     Console.WriteLine($"Tick       mean {k.Mean:F2} µs  p50 {k.P50:F2} µs  p95 {k.P95:F2} µs  max {k.Max:F1} µs");
     Console.WriteLine($"CPU at 100 Hz packets + 240 Hz ticks ≈ {(h.Mean * 100 + k.Mean * 240) / 1e4:F3} % of one core");
     Console.WriteLine($"Allocated {allocated / 1024.0 / seconds:F1} KiB per simulated second, gen0 GCs {GC.CollectionCount(0) - gcBefore} (includes the simulator)");
+    return 0;
+}
+
+int Track()
+{
+    // Cursor-vs-hand accuracy for each responsiveness preset, under a few Bluetooth conditions.
+    foreach (var (name, latency, interval) in new[] { ("good link (12 ms, 15 ms interval)", 0.012, 0.015), ("typical (12 ms, 30 ms interval)", 0.012, 0.030), ("slow (25 ms, 45 ms interval)", 0.025, 0.045) })
+    {
+        Console.WriteLine(name);
+        foreach (var preset in Enum.GetValues<ResponsivenessPreset>())
+        {
+            var settings = PointerPresets.Apply(new PointerSettings(), preset);
+            Console.WriteLine($"  {preset,-9} {TrackingBenchmark.Run(settings, linkLatency: latency, connectionInterval: interval)}");
+        }
+    }
     return 0;
 }
 

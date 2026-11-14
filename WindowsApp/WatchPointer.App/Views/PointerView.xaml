@@ -5,7 +5,7 @@
         <ScrollViewer Style="{StaticResource Page}">
             <StackPanel MaxWidth="980">
                 <TextBlock Text="Pointer settings" Style="{StaticResource PageTitle}" />
-                <TextBlock Text="Changes apply immediately. Defaults match the original WatchPointer." Style="{StaticResource PageSubtitle}" />
+                <TextBlock Text="Changes apply immediately. Geometry defaults match the original WatchPointer; responsiveness defaults to Balanced." Style="{StaticResource PageSubtitle}" />
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
@@ -13,6 +13,33 @@
                         <RadioButton GroupName="mode" IsChecked="{Binding Absolute}" Content="Absolute — point like a laser pointer: where the watch points is where the cursor goes" />
                         <RadioButton GroupName="mode" IsChecked="{Binding Absolute, Converter={StaticResource InverseBool}}" Margin="0,6,0,0"
                                      Content="Relative — air mouse: turning the wrist moves the cursor by that much, from wherever it is" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Responsiveness" Style="{StaticResource SectionHeader}" />
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                   Text="Fast and Balanced predict where your hand is going to hide Bluetooth delay (sized from the measured round trip when the watch reports it). In simulation with a 30 ms Bluetooth interval the cursor's average distance from where you point drops from about 45 px (Smooth) to about 8 px. Smooth is the original WatchPointer tuning: steadiest, no overshoot, about 40 ms behind." />
+                        <WrapPanel>
+                            <Button Content="Smooth (original)" Command="{Binding ApplyPresetCommand}" CommandParameter="Smooth" Padding="14,8" Margin="0,0,8,8" />
+                            <Button Content="Balanced (default)" Command="{Binding ApplyPresetCommand}" CommandParameter="Balanced" Padding="14,8" Margin="0,0,8,8" />
+                            <Button Content="Fast (mouse-like)" Command="{Binding ApplyPresetCommand}" CommandParameter="Fast" Padding="14,8" Margin="0,0,8,8" />
+                        </WrapPanel>
+                        <TextBlock Text="{Binding PresetText}" Style="{StaticResource Caption}" />
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                            <TextBlock Text="Prediction (ms, 0 = off)" Style="{StaticResource SettingLabel}" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="60" Value="{Binding PredictionMs}" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding PredictionMs, StringFormat=F0}" Style="{StaticResource ValueText}" />
+                            <CheckBox Grid.Row="1" Grid.ColumnSpan="3" Margin="0,6,0,0" IsChecked="{Binding AdaptivePrediction}"
+                                      Content="Size prediction from the measured Bluetooth round trip (needs this project's watch app)" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 

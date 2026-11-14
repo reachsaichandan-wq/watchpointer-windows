@@ -122,16 +122,33 @@ public sealed class MotionSimulator
             SimulationPattern.FigureEight => (Amplitude * Math.Sin(w), Amplitude * 0.5 * Math.Sin(2 * w)),
             SimulationPattern.Sweep => (Amplitude * Math.Sin(w), 0),
             SimulationPattern.HoldStill => (0, 0),
-            SimulationPattern.Steps => (((int)(t * Frequency * 4) % 4) switch
-            {
-                0 => (-Amplitude, Amplitude * 0.5),
-                1 => (Amplitude, Amplitude * 0.5),
-                2 => (Amplitude, -Amplitude * 0.5),
-                _ => (-Amplitude, -Amplitude * 0.5),
-            }),
+            SimulationPattern.Steps => StepAim(t),
             _ => (0, 0),
         };
     }
+
+    /// <summary>Quick deliberate moves between four targets: each move follows a minimum-jerk profile (how people
+    /// actually point) lasting <see cref="StepMoveSeconds"/>, then holds.</summary>
+    private (double Left, double Up) StepAim(double t)
+    {
+        static (double, double) Corner(int i, double a) => (i % 4) switch
+        {
+            0 => (-a, a * 0.5),
+            1 => (a, a * 0.5),
+            2 => (a, -a * 0.5),
+            _ => (-a, -a * 0.5),
+        };
+        var segment = t * Frequency * 4;
+        var index = (int)segment;
+        var from = Corner(index + 3, Amplitude);
+        var to = Corner(index, Amplitude);
+        var tau = Math.Clamp((segment - index) / (Frequency * 4) / StepMoveSeconds, 0, 1);
+        var s = tau * tau * tau * (10 - 15 * tau + 6 * tau * tau);
+        return (from.Item1 + (to.Item1 - from.Item1) * s, from.Item2 + (to.Item2 - from.Item2) * s);
+    }
+
+    /// <summary>Duration of each move in the Steps pattern (a fast, deliberate flick of the wrist).</summary>
+    public double StepMoveSeconds { get; set; } = 0.25;
 
     private double Gaussian()
     {

@@ -42,7 +42,8 @@ public sealed record UiSettings
 
 public sealed record AppSettings
 {
-    public int SchemaVersion { get; init; } = 1;
+    public const int CurrentSchemaVersion = 2;
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public PointerSettings Pointer { get; init; } = new();
     public BluetoothSettings Bluetooth { get; init; } = new();
     public HotkeySettings Hotkeys { get; init; } = new();
@@ -60,9 +61,15 @@ public sealed record AppSettings
         foreach (var d in DefaultProfiles.Create())
             if (!profiles.Any(p => string.Equals(p.Name, d.Name, StringComparison.OrdinalIgnoreCase))) profiles.Add(d);
         var active = profiles.Any(p => p.Name == ActiveProfile) ? ActiveProfile : DefaultProfiles.Desktop;
+        var pointer = Pointer ?? new();
+        // v1 → v2: the default responsiveness changed from the original tuning to "Balanced" (prediction on).
+        // Only settings still at the old defaults are moved; anything the user tuned is kept.
+        if (SchemaVersion < 2 && pointer.SmoothingMinCutoff == 0.8 && pointer.SmoothingBeta == 0.01 && pointer.FollowTimeConstant == 0.005)
+            pointer = PointerPresets.Apply(pointer, ResponsivenessPreset.Balanced);
         return this with
         {
-            Pointer = (Pointer ?? new()).Sanitized(),
+            SchemaVersion = CurrentSchemaVersion,
+            Pointer = pointer.Sanitized(),
             Bluetooth = Bluetooth ?? new(),
             Hotkeys = Hotkeys ?? new(),
             Ui = Ui ?? new(),

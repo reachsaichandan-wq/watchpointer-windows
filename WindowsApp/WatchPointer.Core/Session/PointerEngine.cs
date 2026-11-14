@@ -250,6 +250,7 @@ public sealed class PointerEngine
                 _shown = p;
             }
             _target = new PointD(_filterX.Filter(p.X, validDt), _filterY.Filter(p.Y, validDt));
+            _rawPoint = p;
         }
         else
         {
@@ -269,8 +270,81 @@ public sealed class PointerEngine
             var fu = _filterY.Filter(up * RelativeFilterScale, validDt) / RelativeFilterScale;
             var (dx, dy) = _relative.Update(fl, fu, validDt, _settings);
             _target = layout.Clamp(_target!.Value + new PointD(dx, dy));
+            _rawPoint = _target!.Value;
         }
+        UpdateVelocity(_target!.Value, _rawPoint, validDt, fresh);
         _pendingArrival ??= now;
+    }
+
+    // ------------------------------------------------------------------ prediction
+
+    /// <summary>Smoothing time constant of the velocity estimate used for prediction.</summary>
+    public const double VelocityTimeConstant = 0.02;
+    /// <summary>Prediction fades in between these speeds (px/s), so a still or slowly moving hand isn't amplified.</summary>
+    public const double PredictionFadeStart = 150, PredictionFadeFull = 500;
+    /// <summary>Between BLE bursts, keep extrapolating for at most this long after the newest sample.</summary>
+    public const double MaxGapExtrapolation = 0.04;
+    /// <summary>Hard cap on how far prediction may lead the measured position.</summary>
+    public const double MaxPredictionPx = 120;
+
+    /// <summary>Time constant of the unfiltered-velocity estimate used to notice deceleration quickly.</summary>
+    public const double RawVelocityTimeConstant = 0.012;
+    /// <summary>Added to RTT/2 in adaptive mode: the residual lag of the 1€ filter and the glide.</summary>
+    public const double AdaptiveFilterLagMs = 8;
+
+    private PointD _velocity, _rawVelocity, _rawPoint;
+    private PointD? _velocityReference, _rawReference;
+
+    private void UpdateVelocity(PointD target, PointD raw, double dt, bool fresh)
+    {
+        if (fresh || _velocityReference is null || _rawReference is null || !(dt > 0))
+        {
+            if (fresh || _velocityReference is null) { _velocity = _rawVelocity = _rawAcceleration = default; }
+            _velocityReference = target;
+            _rawReference = raw;
+            return;
+        }
+        _velocity += ((target - _velocityReference.Value) * (1 / dt) - _velocity) * (1 - Math.Exp(-dt / VelocityTimeConstant));
+        var previousRaw = _rawVelocity;
+        _rawVelocity += ((raw - _rawReference.Value) * (1 / dt) - _rawVelocity) * (1 - Math.Exp(-dt / RawVelocityTimeConstant));
+        _rawAcceleration += ((_rawVelocity - previousRaw) * (1 / dt) - _rawAcceleration) * (1 - Math.Exp(-dt / RawVelocityTimeConstant));
+        _velocityReference = target;
+        _rawReference = raw;
+    }
+
+    private PointD _rawAcceleration;
+
+    /// <summary>Prediction lead in seconds: measured one-way delay when available (adaptive), else the setting.</summary>
+    private double PredictionSeconds()
+    {
+        if (_settings.PredictionMs <= 0) return 0;
+        if (_settings.AdaptivePrediction && Probe.RoundTrip is { Count: >= 3 } rtt)
+            return Math.Clamp(rtt.P50 / 2 + AdaptiveFilterLagMs / 1000, 0, 0.08);
+        return _settings.PredictionMs / 1000;
+    }
+
+    /// <summary>Where the cursor should be heading now: the filtered target, pushed ahead along the hand's velocity by
+    /// the prediction time plus the time since the newest sample (so bursts of BLE samples don't show as steps).
+    /// Prediction fades in with speed (a still hand isn't amplified) and fades out as soon as the unfiltered motion
+    /// shows the hand slowing down (so stopping doesn't overshoot).</summary>
+    private PointD Predict(PointD target, double now)
+    {
+        var lead = PredictionSeconds();
+        if (lead <= 0) return target;
+        var speed = Math.Sqrt(_velocity.X * _velocity.X + _velocity.Y * _velocity.Y);
+        var gain = Math.Clamp((speed - PredictionFadeStart) / (PredictionFadeFull - PredictionFadeStart), 0, 1);
+        if (gain <= 0) return target;
+        // Component of the current (raw) velocity along the smoothed direction of travel: < speed when decelerating.
+        var along = (_rawVelocity.X * _velocity.X + _rawVelocity.Y * _velocity.Y) / speed;
+        gain *= Math.Clamp(along / speed, 0, 1);
+        if (gain <= 0) return target;
+        var ahead = lead + Math.Clamp(now - _lastSample, 0, MaxGapExtrapolation);
+        var travel = speed * ahead * gain;
+        // Decelerating? Never lead further than the hand needs to stop at its current deceleration (v²/2a).
+        var accelAlong = (_rawAcceleration.X * _velocity.X + _rawAcceleration.Y * _velocity.Y) / speed;
+        if (accelAlong < 0 && along > 0) travel = Math.Min(travel, along * along / (2 * -accelAlong));
+        travel = Math.Min(travel, MaxPredictionPx);
+        return target + _velocity * (travel / speed);
     }
 
     // ------------------------------------------------------------------ cursor loop
@@ -313,7 +387,7 @@ public sealed class PointerEngine
         if (_pcPaused || !_profile.MovePointer) return true;
 
         var follow = 1 - Math.Exp(-frame / _settings.FollowTimeConstant);
-        var next = _shown + (target - _shown) * follow;
+        var next = _shown + (Predict(target, now) - _shown) * follow;
         var moved = (next - _shown).ManhattanLength > 0.05;
         if (moved) _shown = next;
         var p = _displays.Current.Clamp(_shown);
@@ -561,6 +635,8 @@ public sealed class PointerEngine
         _filterX.Reset();
         _filterY.Reset();
         _relative.Reset();
+        _velocity = _rawVelocity = _rawAcceleration = default;
+        _velocityReference = _rawReference = null;
         if (_settings.Mode == PointerMode.Absolute) _target = null; // next sample starts fresh
         _scrollAccumulator = _horizontalAccumulator = 0;
         _historyCount = 0;

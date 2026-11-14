@@ -148,8 +148,24 @@ public class SettingsTests : IDisposable
         File.WriteAllText(PathFor, """{ "pointer": { "horizontalSpeed": 1.2 } }""");
         using var store = new JsonSettingsStore(PathFor);
         Assert.Equal(1.2, store.Current.Pointer.HorizontalSpeed);
-        Assert.Equal(0.8, store.Current.Pointer.SmoothingMinCutoff);
+        Assert.Equal(new PointerSettings().SmoothingMinCutoff, store.Current.Pointer.SmoothingMinCutoff);
+        Assert.Equal(new PointerSettings().PredictionMs, store.Current.Pointer.PredictionMs);
         Assert.True(store.Current.Bluetooth.AutoStart);
+    }
+
+    [Fact]
+    public void Version_1_file_with_untouched_tuning_migrates_to_balanced_but_custom_tuning_is_kept()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathFor, """{ "schemaVersion": 1, "pointer": { "smoothingMinCutoff": 0.8, "smoothingBeta": 0.01, "followTimeConstant": 0.005, "predictionMs": 0 } }""");
+        using (var store = new JsonSettingsStore(PathFor))
+            Assert.Equal(ResponsivenessPreset.Balanced, PointerPresets.Detect(store.Current.Pointer));
+
+        File.WriteAllText(PathFor, """{ "schemaVersion": 1, "pointer": { "smoothingMinCutoff": 0.5, "smoothingBeta": 0.01, "followTimeConstant": 0.005, "predictionMs": 0 } }""");
+        using var custom = new JsonSettingsStore(PathFor);
+        Assert.Equal(0.5, custom.Current.Pointer.SmoothingMinCutoff);
+        Assert.Equal(0, custom.Current.Pointer.PredictionMs);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, custom.Current.SchemaVersion);
     }
 
     public void Dispose()

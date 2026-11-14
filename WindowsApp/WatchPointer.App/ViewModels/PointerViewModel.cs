@@ -47,6 +47,9 @@ public sealed partial class PointerViewModel : PageViewModel
     [ObservableProperty] private double _quick;
     [ObservableProperty] private double _followMs;
     [ObservableProperty] private int _cursorRate;
+    [ObservableProperty] private double _predictionMs;
+    [ObservableProperty] private bool _adaptivePrediction;
+    [ObservableProperty] private string _presetText = "";
     [ObservableProperty] private double _scrollSpeed;
     [ObservableProperty] private bool _invertScroll;
     [ObservableProperty] private bool _smoothScroll;
@@ -72,6 +75,9 @@ public sealed partial class PointerViewModel : PageViewModel
         Quick = p.SmoothingBeta;
         FollowMs = p.FollowTimeConstant * 1000;
         CursorRate = p.CursorRateHz;
+        PredictionMs = p.PredictionMs;
+        AdaptivePrediction = p.AdaptivePrediction;
+        PresetText = PointerPresets.Detect(p) is { } preset ? $"Current: {preset}" : "Current: custom tuning";
         ScrollSpeed = p.ScrollSpeed;
         InvertScroll = p.InvertScroll;
         SmoothScroll = p.SmoothScroll;
@@ -93,7 +99,7 @@ public sealed partial class PointerViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (_loading || e.PropertyName is nameof(ReachText) or nameof(Displays) or nameof(Areas)) return;
+        if (_loading || e.PropertyName is nameof(ReachText) or nameof(Displays) or nameof(Areas) or nameof(PresetText)) return;
         if (e.PropertyName == nameof(HorizontalSpeed)) OnPropertyChanged(nameof(ReachText));
         _settings.Update(s => s with
         {
@@ -115,11 +121,20 @@ public sealed partial class PointerViewModel : PageViewModel
                 SmoothingBeta = Quick,
                 FollowTimeConstant = FollowMs / 1000,
                 CursorRateHz = CursorRate,
+                PredictionMs = PredictionMs,
+                AdaptivePrediction = AdaptivePrediction,
                 ScrollSpeed = ScrollSpeed,
                 InvertScroll = InvertScroll,
                 SmoothScroll = SmoothScroll,
             },
         });
+    }
+
+    [RelayCommand]
+    private void ApplyPreset(string name)
+    {
+        if (!Enum.TryParse<ResponsivenessPreset>(name, out var preset)) return;
+        _settings.Update(s => s with { Pointer = PointerPresets.Apply(s.Pointer, preset) });
     }
 
     [RelayCommand]

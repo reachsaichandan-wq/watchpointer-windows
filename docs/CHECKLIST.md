@@ -13,7 +13,7 @@ development), no Mac, no Apple Watch.
 |---|---|---|
 | Original repo analysed (BLE roles, UUIDs, packets, math, filter, gestures, UI) | ✅ | [ANALYSIS.md](ANALYSIS.md) |
 | Protocol v1 compatibility (UUIDs + all 8 packet kinds) | ✅ | shared vectors, C# tests |
-| Protocol v2 extensions (gestures, pong, ping/state, PC info, horizontal scroll) | ✅ C# · ⏳ Swift | C# tests; Swift tests written, run in CI |
+| Protocol v2 extensions (gestures, pong, ping/state, PC info, horizontal scroll) | ✅ | C# tests + Swift tests in CI, same shared vectors |
 | Packet validation & invalid-packet accounting | ✅ | 8 invalid vectors + 20 000-packet fuzz test |
 | Protocol documented & versioned | ✅ | [PROTOCOL.md](../Shared/Protocol/PROTOCOL.md) |
 
@@ -30,6 +30,7 @@ development), no Mac, no Apple Watch.
 | Relative (air mouse) mode, speed, acceleration, dead zone, sub-pixel | ✅ | mover + engine tests |
 | 1€ filter with watch timestamps, clock sync with drift relaxation | ✅ | filter + clock tests |
 | 240 Hz cursor loop, idle at 20 Hz | ✅ | measured 240–241 Hz, wake lateness p95 ≈ 0.6 ms (`simulate`) |
+| Motion prediction (adaptive to measured RTT, deceleration-aware), presets Smooth / Balanced / Fast | ✅ simulated | `watchpointer-cli track`: mean error 44.9 → 8.2 px, lag 42 → ≈0 ms at a 30 ms BLE interval; [ACCURACY.md](ACCURACY.md). Not yet felt with a real watch. |
 | Recenter (watch and PC side), edge re-anchoring (drift correction) | ✅ | engine tests |
 | Click / right / middle / double click at touch-down position | ✅ | engine tests (rewind with and without stamps) |
 | Drag (hold), drop on release / silence / disconnect | ✅ | engine tests |
@@ -61,7 +62,7 @@ development), no Mac, no Apple Watch.
 | Connection status, PC profile name, battery | ⏳ | |
 | Battery-aware motion (connected + foreground only; 25 Hz when paused) | ⏳ | |
 | Ping/pong latency, PC info name | ⏳ | |
-| Builds on GitHub Actions (simulator + device, unsigned) | ⏳ | workflow written; needs a push to GitHub |
+| Builds on GitHub Actions (simulator + device, unsigned) | ✅ | green on github.com/reachsaichandan-wq/watchpointer-windows (Xcode 16.4); WatchCore tests pass on Linux and macOS |
 | TestFlight workflow (paid account) | ⏳ | unverified by design (no paid account) |
 
 ## Not implemented (by decision)

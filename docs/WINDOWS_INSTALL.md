@@ -13,7 +13,7 @@
 ```powershell
 git clone <your fork> WatchPointer
 cd WatchPointer
-dotnet test Tests/WatchPointer.Core.Tests          # 176 tests
+dotnet test Tests/WatchPointer.Core.Tests
 dotnet run --project WindowsApp/WatchPointer.App    # starts the app
 ```
 
@@ -71,6 +71,7 @@ watchpointer-cli ble-check                    adapter report + real advertising 
 watchpointer-cli listen [--move] [--seconds N] [--verbose]
 watchpointer-cli simulate [--pattern circle|figureeight|sweep|holdstill|steps] [--seconds N] [--live]
 watchpointer-cli bench [--seconds N]
+watchpointer-cli track                        cursor-vs-hand accuracy per responsiveness preset (simulated)
 watchpointer-cli displays
 WatchPointer.exe --show                   open the window even if "start minimized" is set
 WatchPointer.exe --render-pages <dir> [--light]   render every page to PNG and exit (docs/CI)

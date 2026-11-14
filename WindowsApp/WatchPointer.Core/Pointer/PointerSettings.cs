@@ -8,7 +8,8 @@ public enum PointerMode
     Relative,
 }
 
-/// <summary>All pointer tuning. Defaults reproduce the original WatchPointer (speed 1, steady 0.8, quick 0.01).</summary>
+/// <summary>All pointer tuning. Geometry defaults match the original WatchPointer; responsiveness defaults are the
+/// "Balanced" preset (the original tuning is the "Smooth" preset, see <see cref="PointerPresets"/>).</summary>
 public sealed record PointerSettings
 {
     public PointerMode Mode { get; init; } = PointerMode.Absolute;
@@ -38,13 +39,20 @@ public sealed record PointerSettings
     public bool InvertHorizontal { get; init; }
     public bool InvertVertical { get; init; }
     /// <summary>1€ min cutoff, Hz ("steady").</summary>
-    public double SmoothingMinCutoff { get; init; } = 0.8;
+    public double SmoothingMinCutoff { get; init; } = 1.0;
     /// <summary>1€ beta ("quick").</summary>
-    public double SmoothingBeta { get; init; } = 0.01;
+    public double SmoothingBeta { get; init; } = 0.02;
     /// <summary>Catch-up time constant of the 240 Hz glide between samples, seconds.</summary>
-    public double FollowTimeConstant { get; init; } = 0.005;
+    public double FollowTimeConstant { get; init; } = 0.003;
     /// <summary>Cursor loop rate. 240 Hz by default (faster than any display, hides the gaps between BLE samples).</summary>
     public int CursorRateHz { get; init; } = 240;
+    /// <summary>Motion prediction: how far ahead (ms) to extrapolate the pointer along its current velocity, to hide
+    /// Bluetooth delay. Also fills the gaps between bursty BLE deliveries. Only active on deliberate movement (fades
+    /// out below ~150 px/s), so holding still stays steady. 0 = off (original behaviour).</summary>
+    public double PredictionMs { get; init; } = 20;
+    /// <summary>When the watch reports round trips (protocol v2), size the prediction from the measured one-way
+    /// Bluetooth delay (RTT/2 + filter lag) instead of the fixed <see cref="PredictionMs"/>.</summary>
+    public bool AdaptivePrediction { get; init; } = true;
 
     // ---- Scrolling ----
     /// <summary>Multiplier on the watch's Crown scroll amount.</summary>
@@ -71,6 +79,7 @@ public sealed record PointerSettings
         SmoothingBeta = Math.Clamp(SmoothingBeta, 0, 1),
         FollowTimeConstant = Math.Clamp(FollowTimeConstant, 0.0005, 0.1),
         CursorRateHz = Math.Clamp(CursorRateHz, 60, 1000),
+        PredictionMs = Math.Clamp(PredictionMs, 0, 80),
         ScrollSpeed = Math.Clamp(ScrollSpeed, 0.05, 20),
         FallbackRewindSeconds = Math.Clamp(FallbackRewindSeconds, 0, 0.5),
     };

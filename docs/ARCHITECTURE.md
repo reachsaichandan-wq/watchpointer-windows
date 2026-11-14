@@ -58,7 +58,8 @@ pointer.
 | Decision | Why |
 |---|---|
 | Keep protocol v1 byte-for-byte; extend additively (v2) | The original watch app works unchanged; the new watch app works with the original Mac receiver. |
-| Core has no Windows dependencies | 176 unit/integration tests run anywhere; the simulator and benchmark drive the real engine. |
+| Core has no Windows dependencies | All unit/integration tests run anywhere; the simulator, benchmark and accuracy tracker drive the real engine. |
+| Motion prediction in the engine | Hides Bluetooth delay (see [ACCURACY.md](ACCURACY.md)); measured, deceleration-aware, adaptive to RTT. |
 | WPF + Fluent theme (`ThemeMode`) instead of WinUI 3 | No Windows App SDK runtime to install, unpackaged `.exe`, dark/light/system themes built in, simpler CI. |
 | WinRT `GattServiceProvider` from an unpackaged desktop app | Works without MSIX packaging/capabilities for desktop apps. |
 | `SendInput` absolute + `VIRTUALDESK` with exact normalisation | Real injected input (drag works everywhere), exact physical pixels on mixed-DPI multi-monitor setups (tested for every pixel of several layouts). |

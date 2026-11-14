@@ -27,11 +27,13 @@ watchpointer-cli ble-check
 
 ## Status
 
-The Windows receiver is complete and tested (176 automated tests, simulator, measured performance). The watch app
-source is complete; it builds on GitHub's macOS runners. End-to-end with a real watch has **not** been verified yet —
-see the honest [feature checklist](docs/CHECKLIST.md).
+The Windows receiver is complete and tested (automated tests, simulator, measured performance). The watch app
+source is complete and builds green on GitHub's macOS runners. End-to-end with a real watch has **not** been verified
+yet — see the honest [feature checklist](docs/CHECKLIST.md).
 
-Measured on the development PC (simulated watch, real cursor loop): 240 Hz cursor updates, timer wake-up lateness
+Measured on the development PC (simulated watch, real cursor loop): motion prediction cuts the cursor-to-hand error
+from ~45 px to ~8 px and the lag from ~42 ms to ≈0 ms at a typical Bluetooth interval
+([details](docs/ACCURACY.md)); 240 Hz cursor updates, timer wake-up lateness
 p95 ≈ 0.6 ms, PC-side pipeline latency p50 ≈ 2 ms, engine CPU ≈ 0.15 % of one core. Bluetooth latency depends on the
 watch and adapter; the app measures it (round trip) instead of guessing.
 
@@ -81,6 +83,7 @@ docs/            analysis, architecture, install guides, Bluetooth guide, troubl
 - [Apple Watch installation (free vs paid, what needs a Mac)](docs/WATCH_INSTALL.md)
 - [Bluetooth compatibility](docs/BLUETOOTH.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Pointer accuracy & responsiveness](docs/ACCURACY.md)
 - [Feature checklist](docs/CHECKLIST.md)
 
 ## Security note

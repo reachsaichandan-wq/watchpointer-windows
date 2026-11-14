@@ -137,13 +137,22 @@ public partial class App : Application
     {
         if (_exiting) return;
         _exiting = true;
-        _laser?.Hide();
-        _tray?.Dispose();
-        _hotkeys?.Dispose();
-        if (_host is not null) await _host.DisposeAsync();
-        (_services?.GetService<ISettingsStore>() as IDisposable)?.Dispose();
-        _services?.Dispose();
-        _singleInstance?.ReleaseMutex();
-        Shutdown();
+        try
+        {
+            _laser?.Hide();
+            _tray?.Dispose();
+            _hotkeys?.Dispose();
+            // The container owns the receiver host (IAsyncDisposable) and the settings store (saves on dispose).
+            if (_services is not null) await _services.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            try { File.AppendAllText(Path.Combine(FileLogProvider.DefaultDirectory, "exit-error.log"), $"{DateTime.Now:O} {ex}\n"); } catch (IOException) { }
+        }
+        finally
+        {
+            try { _singleInstance?.ReleaseMutex(); } catch (ApplicationException) { /* not owned by this thread */ }
+            Shutdown();
+        }
     }
 }

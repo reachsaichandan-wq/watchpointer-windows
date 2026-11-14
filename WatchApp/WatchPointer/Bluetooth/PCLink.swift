@@ -28,6 +28,11 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
     @Published private(set) var pcProfile: String?
     @Published private(set) var pcPaused = false
     @Published private(set) var pcSupportsV2 = false
+    /// v2: remote-button labels, speed mode and drag lock, from the PC's profile characteristic.
+    @Published private(set) var profileState: ProfileState?
+    /// The watch is lowered (pointing at the floor) and pointing is paused because of it.
+    @Published private(set) var lowered = false
+    private var profileCharacteristic: CBCharacteristic?
 
     private enum Keys {
         static let pairedID = "pairedPCID"
@@ -38,6 +43,7 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
     private let inputUUID = CBUUID(string: WatchPointerUUID.input)
     private let outputUUID = CBUUID(string: WatchPointerUUID.output)
     private let infoUUID = CBUUID(string: WatchPointerUUID.info)
+    private let profileUUID = CBUUID(string: WatchPointerUUID.profile)
 
     private var pairedID = UserDefaults.standard.string(forKey: Keys.pairedID).flatMap(UUID.init)
     private var central: CBCentralManager!
@@ -178,17 +184,19 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else { return }
-        peripheral.discoverCharacteristics([inputUUID, outputUUID, infoUUID], for: service)
+        peripheral.discoverCharacteristics([inputUUID, outputUUID, infoUUID, profileUUID], for: service)
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         input = service.characteristics?.first { $0.uuid == inputUUID }
         output = service.characteristics?.first { $0.uuid == outputUUID }
+        profileCharacteristic = service.characteristics?.first { $0.uuid == profileUUID }
         if let output { peripheral.setNotifyValue(true, for: output) }
         if let info = service.characteristics?.first(where: { $0.uuid == infoUUID }) {
             pcSupportsV2 = true
             peripheral.readValue(for: info)
         }
+        refreshProfile()
         connected = input != nil
         sendInfo()
         infoTimer?.invalidate()
@@ -203,6 +211,10 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
             UserDefaults.standard.set(info.name, forKey: Keys.pairedName)
             return
         }
+        if characteristic.uuid == profileUUID {
+            if let state = ProfileState.decode(value) { profileState = state }
+            return
+        }
         guard characteristic.uuid == outputUUID, let message = PCNotification.decode([UInt8](value)) else { return }
         switch message {
         case let .ping(sequence):
@@ -212,7 +224,21 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
         case let .state(paused, _, profile):
             pcPaused = paused
             pcProfile = profile.isEmpty ? nil : profile
+            refreshProfile() // labels / speed mode may have changed
         }
+    }
+
+    /// Reads the PC's profile characteristic (button labels, speed mode, drag lock). Older receivers don't have it.
+    func refreshProfile() {
+        guard let pc, let profileCharacteristic else { return }
+        pc.readValue(for: profileCharacteristic)
+    }
+
+    /// Lowered-to-pause (watch pointing at the floor): pauses with a reason so the PC can show it; raising resumes.
+    func setLowered(_ lowered: Bool) {
+        guard lowered != self.lowered else { return }
+        self.lowered = lowered
+        if !paused { send(.pause, lowered ? 1 : 0, lowered ? PauseReason.lowered.rawValue : 0) }
     }
 
     func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
@@ -228,6 +254,9 @@ final class PCLink: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeri
         pcProfile = nil
         pcPaused = false
         pcSupportsV2 = false
+        profileState = nil
+        profileCharacteristic = nil
+        lowered = false
         pendingScroll.reset()
         infoTimer?.invalidate()
         start()

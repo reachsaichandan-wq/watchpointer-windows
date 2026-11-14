@@ -27,7 +27,7 @@ private struct RemoteScreen: View {
     var body: some View {
         NavigationStack {
             remote
-                .navigationTitle(link.connected ? (link.pcProfile ?? "") : "")
+                .navigationTitle(link.connected ? title : "")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     if link.connected {
@@ -66,6 +66,14 @@ private struct RemoteScreen: View {
         }
     }
 
+    /// Next to the clock: the PC profile, plus the speed mode / lowered state when relevant.
+    private var title: String {
+        if link.lowered { return "Lowered" }
+        let profile = link.profileState?.profile ?? link.pcProfile ?? ""
+        guard let mode = link.profileState?.mode, mode != "Normal" else { return profile }
+        return profile.isEmpty ? mode : "\(profile) · \(mode)"
+    }
+
     private var remote: some View {
         Group {
             if !link.bluetoothReady {
@@ -74,7 +82,7 @@ private struct RemoteScreen: View {
                     .foregroundStyle(.secondary)
             } else if link.connected {
                 VStack(spacing: 6) {
-                    ClickPad(paused: link.paused || link.pcPaused, clicks: $clicks, link: link)
+                    ClickPad(paused: link.paused || link.pcPaused || link.lowered, clicks: $clicks, link: link)
                         .frame(maxHeight: .infinity)
                     HStack(spacing: 6) {
                         PadButton(symbol: "contextualmenu.and.cursorarrow") {

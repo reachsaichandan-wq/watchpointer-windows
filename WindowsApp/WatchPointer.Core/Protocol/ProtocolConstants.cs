@@ -19,6 +19,10 @@ public static class ProtocolConstants
     /// <summary>v2 addition: readable JSON describing the PC (name, OS, protocol version). Ignored by v1 watches.</summary>
     public static readonly Guid InfoUuid = Guid.Parse("6B1E0004-9F4C-4C2A-9B8E-3D2A1C0F5E01");
 
+    /// <summary>v2 addition: readable JSON with the active profile, speed mode and remote-button labels
+    /// (<see cref="ProfileState"/>). Read again by the watch whenever a state notification arrives.</summary>
+    public static readonly Guid ProfileUuid = Guid.Parse("6B1E0005-9F4C-4C2A-9B8E-3D2A1C0F5E01");
+
     /// <summary>Protocol version implemented by this receiver.</summary>
     public const int ProtocolVersion = 2;
 

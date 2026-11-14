@@ -43,6 +43,31 @@
                     </StackPanel>
                 </Border>
 
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Grid.ColumnSpan="3" Text="Speed modes" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource Caption}" Margin="0,0,0,8"
+                                   Text="Switch with the watch's Precision button, the dashboard, or Ctrl+Alt+F. The cursor never jumps when switching: the new scale applies from where it is." />
+                        <TextBlock Grid.Row="2" Text="Precision (fine control)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="2" Grid.Column="1" Minimum="0.1" Maximum="0.9" Value="{Binding PrecisionScale}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PrecisionScale, StringFormat={}{0:F2}×}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="3" Text="Fast (large screens)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="3" Grid.Column="1" Minimum="1.2" Maximum="4" Value="{Binding FastScale}" TickFrequency="0.1" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding FastScale, StringFormat={}{0:F1}×}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="4" Text="Drawing (no prediction, steadier)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="4" Grid.Column="1" Minimum="0.2" Maximum="1" Value="{Binding DrawingScale}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding DrawingScale, StringFormat={}{0:F2}×}" Style="{StaticResource ValueText}" />
+                        <CheckBox Grid.Row="5" Grid.ColumnSpan="3" Margin="0,8,0,0" IsChecked="{Binding AutoPrecision}"
+                                  Content="Auto precision: enter Precision after holding steady for 2 s, leave it on a fast move" />
+                    </Grid>
+                </Border>
+
                 <Border Style="{StaticResource Card}" Visibility="{Binding Absolute, Converter={StaticResource BoolToVisibility}}">
                     <Grid>
                         <Grid.ColumnDefinitions>

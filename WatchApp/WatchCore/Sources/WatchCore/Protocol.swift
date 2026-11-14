@@ -11,6 +11,8 @@ public enum WatchPointerUUID {
     public static let output = "6B1E0003-9F4C-4C2A-9B8E-3D2A1C0F5E01"
     /// v2: readable JSON describing the PC.
     public static let info = "6B1E0004-9F4C-4C2A-9B8E-3D2A1C0F5E01"
+    /// v2: readable JSON with the active profile, speed mode and remote-button labels.
+    public static let profile = "6B1E0005-9F4C-4C2A-9B8E-3D2A1C0F5E01"
 }
 
 public let protocolVersion = 2
@@ -26,7 +28,39 @@ public enum WatchGesture: Int16, CaseIterable {
     case swipeLeft = 1, swipeRight = 2, swipeUp = 3, swipeDown = 4
     case handDoubleTap = 5
     case wristFlick = 6
+    case flickLeft = 7, flickRight = 8
+    case shake = 9
+    case twistClockwise = 10, twistAnticlockwise = 11
     case buttonA = 16, buttonB = 17, buttonC = 18, buttonD = 19
+    case buttonE = 20, buttonF = 21, buttonG = 22, buttonH = 23
+    /// Fixed-function buttons: the PC acts on them directly.
+    case precisionToggle = 32, dragLockToggle = 33, nextDisplay = 34
+
+    public static let remoteButtons: [WatchGesture] = [.buttonA, .buttonB, .buttonC, .buttonD, .buttonE, .buttonF, .buttonG, .buttonH]
+}
+
+/// `b` of a pause packet (v2).
+public enum PauseReason: Int16 {
+    case button = 0
+    /// The watch is lowered (pointing at the floor); resumes when raised.
+    case lowered = 1
+}
+
+/// What the PC serves on the profile characteristic.
+public struct ProfileState: Decodable, Equatable {
+    public struct Button: Decodable, Equatable {
+        public let g: Int
+        public let label: String
+    }
+
+    public let profile: String
+    public let mode: String
+    public let dragLock: Bool
+    public let buttons: [Button]
+
+    public static func decode(_ data: Data) -> ProfileState? { try? JSONDecoder().decode(ProfileState.self, from: data) }
+
+    public func label(for gesture: WatchGesture) -> String? { buttons.first { $0.g == Int(gesture.rawValue) }?.label }
 }
 
 /// Builds packets: [kind, Int16 LE a, Int16 LE b] plus optional [UInt16 LE ms], or [6] + JSON for info.

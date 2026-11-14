@@ -29,6 +29,7 @@ Consequence: the PC's Bluetooth adapter must support the LE peripheral role (see
 | `6B1E0002-9F4C-4C2A-9B8E-3D2A1C0F5E01` | Input | write, write without response | watch → PC | every packet below |
 | `6B1E0003-9F4C-4C2A-9B8E-3D2A1C0F5E01` | Output | notify | PC → watch | subscribe = connected, unsubscribe = disconnected. v1: never sent. v2: ping/state, **only** to watches that reported `proto ≥ 2` |
 | `6B1E0004-9F4C-4C2A-9B8E-3D2A1C0F5E01` | Info (v2) | read (static) | PC → watch | JSON `{"name","os","proto","app"}` |
+| `6B1E0005-9F4C-4C2A-9B8E-3D2A1C0F5E01` | Profile (v2) | read (dynamic, ≤ 512 bytes) | PC → watch | JSON `{"profile","mode","dragLock","buttons":[{"g":16,"label":"Desktop"},…]}`; re-read after each state notification |
 
 Write types: `aim` and `scroll` use *write without response* (if the link is busy the next sample replaces it);
 everything else uses *write with response* so clicks are never dropped. A pong uses without-response when possible.
@@ -47,7 +48,7 @@ trailing bytes up to 20 total (forward compatibility).
 | 2 | rightClick | 0 | 0 | ≈ touch-down (release − 0.12 s) | v1 |
 | 3 | scroll | vertical "pixels", positive = up | v1: 0. v2: horizontal pixels, positive = right | — | v1 / v2 |
 | 4 | center | 0 | 0 | — | v1 |
-| 5 | pause | 1 paused / 0 resumed | 0 | — | v1 |
+| 5 | pause | 1 paused / 0 resumed | v1: 0. v2: reason, 1 = watch lowered | — | v1 / v2 |
 | 6 | info | `[6] + UTF-8 JSON` (not fixed size, ≤ 512 bytes) | | | v1 |
 | 7 | drag | 1 grab (mouse down) / 0 drop (mouse up) | 0 | touch-down (grab) / just before lift (drop) | v1 |
 | 8 | gesture | gesture id (below) | 0 | when it happened | **v2** |
@@ -61,8 +62,10 @@ Info JSON (v1 fields + v2 additions):
 
 `battery` is a percentage or −1 when unknown. Missing `proto` means 1. Sent on connect and every 60 s.
 
-Gesture ids (kind 8): 1 swipe left, 2 swipe right, 3 swipe up, 4 swipe down, 5 system Double Tap,
-6 wrist flick, 16–19 remote buttons A–D. Unknown ids are rejected as out of range.
+Gesture ids (kind 8): 1–4 swipe left/right/up/down, 5 system Double Tap, 6 wrist flick (undirected, older
+builds), 7/8 flick left/right, 9 shake, 10/11 twist clockwise/anticlockwise, 16–23 profile buttons A–H (mapped by the
+PC), 32 precision toggle, 33 drag-lock toggle, 34 next display (fixed functions). Unknown ids are rejected as out of
+range.
 
 ### Validation rules (receiver)
 
@@ -84,7 +87,7 @@ clamped.
 | First byte | Message | Layout |
 |---|---|---|
 | 1 | ping | `[1][seq:u16]` — the watch answers with a pong packet carrying `seq` |
-| 2 | state | `[2][flags:u8][UTF-8 profile name, ≤ 17 bytes]` — flags bit0 PC paused, bit1 laser on |
+| 2 | state | `[2][flags:u8][UTF-8 profile name, ≤ 17 bytes]` — flags bit0 PC paused, bit1 laser on, bit2 speed mode not Normal, bit3 drag lock |
 
 The receiver sends a ping every 2 s and the state every 5 s and on change, only while a v2 watch is connected. The
 RTT is measured entirely on the PC clock (no synchronisation needed).

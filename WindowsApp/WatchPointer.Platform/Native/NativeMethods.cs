@@ -184,4 +184,9 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial uint GetDoubleClickTime();
+
+    /// <summary>Locks the workstation (the supported way; Win+L can't be injected).</summary>
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool LockWorkStation();
 }

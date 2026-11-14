@@ -18,6 +18,12 @@
     { "name": "drag_drop", "hex": "0700000000", "expect": { "kind": "drag", "a": 0, "b": 0 } },
     { "name": "gesture_swipe_left_v2", "hex": "0801000000", "expect": { "kind": "gesture", "a": 1, "b": 0 } },
     { "name": "gesture_button_a_v2", "hex": "08100000001027", "expect": { "kind": "gesture", "a": 16, "b": 0, "ms": 10000 } },
+    { "name": "gesture_shake_v2", "hex": "0809000000", "expect": { "kind": "gesture", "a": 9, "b": 0 } },
+    { "name": "gesture_flick_right_v2", "hex": "0808000000e803", "expect": { "kind": "gesture", "a": 8, "b": 0, "ms": 1000 } },
+    { "name": "gesture_twist_anticlockwise_v2", "hex": "080b000000", "expect": { "kind": "gesture", "a": 11, "b": 0 } },
+    { "name": "gesture_button_h_v2", "hex": "0817000000", "expect": { "kind": "gesture", "a": 23, "b": 0 } },
+    { "name": "gesture_precision_toggle_v2", "hex": "0820000000", "expect": { "kind": "gesture", "a": 32, "b": 0 } },
+    { "name": "pause_lowered_v2", "hex": "0501000100", "expect": { "kind": "pause", "a": 1, "b": 1 } },
     { "name": "pong_v2", "hex": "09070000001027", "expect": { "kind": "pong", "a": 7, "b": 0, "ms": 10000 } },
     { "name": "info_original_watch", "kind": 6, "json": "{\"model\":\"Watch7,5\",\"os\":\"11.0\",\"battery\":80,\"charging\":false,\"name\":\"Sam's Watch\"}", "expect": { "kind": "info", "model": "Watch7,5", "os": "11.0", "battery": 80, "charging": false, "name": "Sam's Watch", "proto": 1 } },
     { "name": "info_v2_watch", "kind": 6, "json": "{\"model\":\"Watch7,17\",\"os\":\"26.1\",\"battery\":-1,\"charging\":true,\"name\":\"Watch\",\"proto\":2,\"app\":\"1.0.0\"}", "expect": { "kind": "info", "model": "Watch7,17", "os": "26.1", "battery": -1, "charging": true, "name": "Watch", "proto": 2 } }

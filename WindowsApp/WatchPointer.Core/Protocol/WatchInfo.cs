@@ -27,6 +27,24 @@ public sealed record PcInfo
     [JsonPropertyName("app")] public string App { get; init; } = "";
 }
 
+/// <summary>Served on the v2 profile characteristic: what the watch's tool buttons do right now.</summary>
+public sealed record ProfileState
+{
+    [JsonPropertyName("profile")] public string Profile { get; init; } = "";
+    /// <summary>Normal, Precision, Fast or Drawing.</summary>
+    [JsonPropertyName("mode")] public string Mode { get; init; } = "Normal";
+    [JsonPropertyName("dragLock")] public bool DragLock { get; init; }
+    [JsonPropertyName("buttons")] public List<ButtonLabel> Buttons { get; init; } = [];
+}
+
+/// <summary>Label of a remote button (<c>g</c> = gesture id 16–23). Labels are kept short for the watch.</summary>
+public sealed record ButtonLabel
+{
+    [JsonPropertyName("g")] public int Gesture { get; init; }
+    [JsonPropertyName("label")] public string Label { get; init; } = "";
+}
+
 [JsonSerializable(typeof(WatchInfo))]
 [JsonSerializable(typeof(PcInfo))]
+[JsonSerializable(typeof(ProfileState))]
 internal sealed partial class ProtocolJsonContext : JsonSerializerContext;

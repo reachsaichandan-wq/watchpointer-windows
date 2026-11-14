@@ -50,6 +50,10 @@ public sealed partial class PointerViewModel : PageViewModel
     [ObservableProperty] private double _predictionMs;
     [ObservableProperty] private bool _adaptivePrediction;
     [ObservableProperty] private string _presetText = "";
+    [ObservableProperty] private double _precisionScale;
+    [ObservableProperty] private double _fastScale;
+    [ObservableProperty] private double _drawingScale;
+    [ObservableProperty] private bool _autoPrecision;
     [ObservableProperty] private double _scrollSpeed;
     [ObservableProperty] private bool _invertScroll;
     [ObservableProperty] private bool _smoothScroll;
@@ -77,6 +81,10 @@ public sealed partial class PointerViewModel : PageViewModel
         CursorRate = p.CursorRateHz;
         PredictionMs = p.PredictionMs;
         AdaptivePrediction = p.AdaptivePrediction;
+        PrecisionScale = p.PrecisionScale;
+        FastScale = p.FastScale;
+        DrawingScale = p.DrawingScale;
+        AutoPrecision = p.AutoPrecision;
         PresetText = PointerPresets.Detect(p) is { } preset ? $"Current: {preset}" : "Current: custom tuning";
         ScrollSpeed = p.ScrollSpeed;
         InvertScroll = p.InvertScroll;
@@ -123,6 +131,10 @@ public sealed partial class PointerViewModel : PageViewModel
                 CursorRateHz = CursorRate,
                 PredictionMs = PredictionMs,
                 AdaptivePrediction = AdaptivePrediction,
+                PrecisionScale = PrecisionScale,
+                FastScale = FastScale,
+                DrawingScale = DrawingScale,
+                AutoPrecision = AutoPrecision,
                 ScrollSpeed = ScrollSpeed,
                 InvertScroll = InvertScroll,
                 SmoothScroll = SmoothScroll,

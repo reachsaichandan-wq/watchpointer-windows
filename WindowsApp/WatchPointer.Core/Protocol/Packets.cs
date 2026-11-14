@@ -20,7 +20,7 @@ public sealed record CenterPacket : WatchPacket
     public CenterPacket() : base(PacketKind.Center) { }
 }
 
-public sealed record PausePacket(bool Paused) : WatchPacket(PacketKind.Pause);
+public sealed record PausePacket(bool Paused, PauseReason Reason = PauseReason.Button) : WatchPacket(PacketKind.Pause);
 
 public sealed record InfoPacket(WatchInfo Info) : WatchPacket(PacketKind.Info);
 

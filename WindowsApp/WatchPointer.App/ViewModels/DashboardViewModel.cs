@@ -49,6 +49,16 @@ public sealed partial class DashboardViewModel : PageViewModel
     [ObservableProperty] private string _aimText = "";
 
     public ObservableCollection<string> ProfileNames { get; }
+    public SpeedMode[] SpeedModes { get; } = Enum.GetValues<SpeedMode>();
+
+    [ObservableProperty] private SpeedMode _selectedSpeedMode;
+    [ObservableProperty] private string _modeDetail = "";
+    private bool _syncingSpeed;
+
+    partial void OnSelectedSpeedModeChanged(SpeedMode value)
+    {
+        if (!_syncingSpeed) _host.Engine.SpeedMode = value;
+    }
 
     /// <summary>One line for the tray tooltip.</summary>
     public string TrayStatus => $"WatchPointer: {WatchStatus}{(Paused ? " (paused)" : "")}";
@@ -75,6 +85,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         {
             PointerPhase.Live when s.WatchUntrusted => ("Untrusted watch", StatusTone.Bad, $"{s.Watch?.Name} is not the trusted watch; input ignored."),
             PointerPhase.Live => ("Pointing", StatusTone.Good, WatchName(s)),
+            PointerPhase.Paused when s.PauseReason == Core.Protocol.PauseReason.Lowered => ("Lowered", StatusTone.Warning, "Paused while the watch points at the floor; raise it to continue."),
             PointerPhase.Paused => ("Paused on watch", StatusTone.Warning, WatchName(s)),
             PointerPhase.Idle => ("Idle", StatusTone.Warning, "Connected, but no motion samples. Wake the watch or reopen the app."),
             _ when state == TransportState.Connected => ("Connected", StatusTone.Good, WatchName(s)),
@@ -95,6 +106,10 @@ public sealed partial class DashboardViewModel : PageViewModel
         else { Latency = "—"; LatencyDetail = ""; }
         Paused = s.PcPaused;
         Laser = _host.Laser;
+        _syncingSpeed = true;
+        SelectedSpeedMode = s.SpeedMode;
+        _syncingSpeed = false;
+        ModeDetail = (s.AutoPrecisionActive ? "auto precision" : "") + (s.DragLocked ? (s.AutoPrecisionActive ? " · " : "") + "drag lock ON" : "");
 
         var layout = _host.Displays.Current;
         var area = layout.VirtualBounds;

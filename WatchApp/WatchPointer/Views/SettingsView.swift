@@ -9,6 +9,9 @@ struct SettingsView: View {
     @AppStorage(WatchSettingKey.invertCrown) private var invertCrown = false
     @AppStorage(WatchSettingKey.swipes) private var swipes = true
     @AppStorage(WatchSettingKey.wristFlick) private var wristFlick = false
+    @AppStorage(WatchSettingKey.shake) private var shake = true
+    @AppStorage(WatchSettingKey.twist) private var twist = false
+    @AppStorage(WatchSettingKey.lowerToPause) private var lowerToPause = true
     @AppStorage(WatchSettingKey.driftCompensation) private var driftCompensation = false
     @AppStorage(WatchSettingKey.haptics) private var haptics = true
     @State private var battery = -1
@@ -31,9 +34,17 @@ struct SettingsView: View {
             }
             Section("Gestures") {
                 Toggle("Swipes on the pad", isOn: $swipes)
-                Toggle("Wrist flick", isOn: $wristFlick)
+                Toggle("Shake → Escape", isOn: $shake)
+                    .onChange(of: shake) { session.applySettings() }
+                Toggle("Lower to pause", isOn: $lowerToPause)
+                    .onChange(of: lowerToPause) { session.applySettings() }
+                Text("Point at the floor to pause the cursor; raise the watch to continue.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Toggle("Wrist flick left/right", isOn: $wristFlick)
                     .onChange(of: wristFlick) { session.applySettings() }
-                Text("A quick, sharp flick sends a gesture. Off by default: brisk pointing can trigger it.")
+                Toggle("Twist for volume", isOn: $twist)
+                    .onChange(of: twist) { session.applySettings() }
+                Text("Flick and twist are off by default: brisk pointing can come close to a flick, and twisting is easy to do by accident. Actions are set per profile on the PC.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Haptics", isOn: $haptics)
             }

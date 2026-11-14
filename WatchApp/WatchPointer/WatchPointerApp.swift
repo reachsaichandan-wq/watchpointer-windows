@@ -11,29 +11,47 @@ struct WatchPointerApp: App {
 }
 
 /// Glue between Bluetooth, motion and the UI: starts motion only while connected and in the foreground, sends aim
-/// samples, flushes scroll, and fires wrist-flick gestures when enabled.
+/// samples, flushes scroll, and runs the motion-gesture detectors (each can be switched off in Settings).
+/// Pointing keeps tracking while buttons are used; only Pause, a drag, or lowering the watch stop the cursor.
 final class Session: ObservableObject {
     let link = PCLink()
     let motion = MotionService()
     @Published var foreground = true
 
+    private var shake = ShakeDetector()
+    private var flick = FlickDetector()
+    private var twist = TwistDetector()
+    private var lower = LowerDetector()
+    private var lastSample: MotionSample?
+    private var shakeEnabled = true, flicksEnabled = false, twistEnabled = false, lowerEnabled = true
+
     init() {
-        motion.onSample = { [weak self] sample in
-            guard let self, link.connected else { return }
-            link.flushScroll()
-            guard !link.paused else { return }
-            link.sendAim(leftDegrees: motion.tracker.leftDegrees, upDegrees: motion.tracker.upDegrees, at: sample.timestamp)
-        }
-        motion.onFlick = { [weak self] time in
-            guard let self, link.connected, !link.paused else { return }
-            link.sendGesture(.wristFlick, at: time)
-        }
+        motion.onSample = { [weak self] sample in self?.handle(sample) }
         applySettings()
+    }
+
+    private func handle(_ sample: MotionSample) {
+        lastSample = sample
+        guard link.connected else { return }
+        link.flushScroll()
+
+        if lowerEnabled, let lowered = lower.update(sample) { link.setLowered(lowered) }
+        guard !link.paused, !link.lowered else { return }
+
+        if shakeEnabled, shake.update(sample) { link.sendGesture(.shake, at: sample.timestamp) }
+        if flicksEnabled, let g = flick.update(sample) { link.sendGesture(g, at: sample.timestamp) }
+        if twistEnabled, let g = twist.update(sample) { link.sendGesture(g, at: sample.timestamp) }
+
+        link.sendAim(leftDegrees: motion.tracker.leftDegrees, upDegrees: motion.tracker.upDegrees, at: sample.timestamp)
     }
 
     func applySettings() {
         let defaults = UserDefaults.standard
-        motion.flickEnabled = defaults.bool(forKey: WatchSettingKey.wristFlick)
+        shakeEnabled = defaults.bool(forKey: WatchSettingKey.shake)
+        flicksEnabled = defaults.bool(forKey: WatchSettingKey.wristFlick)
+        twistEnabled = defaults.bool(forKey: WatchSettingKey.twist)
+        lowerEnabled = defaults.bool(forKey: WatchSettingKey.lowerToPause)
+        if !lowerEnabled { lower.reset(); link.setLowered(false) }
         motion.tracker.driftCompensation = defaults.bool(forKey: WatchSettingKey.driftCompensation)
     }
 
@@ -47,14 +65,19 @@ final class Session: ObservableObject {
         }
     }
 
-    /// Whatever direction the watch points now becomes the middle of the screen.
+    /// Whatever direction the watch points now becomes the middle of the screen (and the neutral twist angle).
     func center() {
         motion.tracker.recenter()
+        if let lastSample { twist.recenter(lastSample) }
         link.send(.center)
     }
 
     func connectedChanged() {
-        if link.connected { motion.tracker.recenter() } // fresh connection: start centred, like the original
+        if link.connected {
+            motion.tracker.recenter() // fresh connection: start centred, like the original
+            if let lastSample { twist.recenter(lastSample) }
+            lower.reset()
+        }
         updateMotion()
     }
 }

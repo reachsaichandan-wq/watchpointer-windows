@@ -1,5 +1,18 @@
 namespace WatchPointer.Core.Pointer;
 
+/// <summary>Temporary sensitivity modes, switched from the watch, the dashboard or a hotkey. Switching never makes the
+/// cursor jump: the new scale applies to movement from where the cursor is.</summary>
+public enum SpeedMode
+{
+    Normal,
+    /// <summary>Reduced sensitivity for tiny buttons and text.</summary>
+    Precision,
+    /// <summary>Higher sensitivity to cross large screens.</summary>
+    Fast,
+    /// <summary>Reduced sensitivity, no prediction (no overshoot), extra smoothing: for drawing and annotating.</summary>
+    Drawing,
+}
+
 public enum PointerMode
 {
     /// <summary>Laser pointer: watch orientation decides the cursor position.</summary>
@@ -54,6 +67,14 @@ public sealed record PointerSettings
     /// Bluetooth delay (RTT/2 + filter lag) instead of the fixed <see cref="PredictionMs"/>.</summary>
     public bool AdaptivePrediction { get; init; } = true;
 
+    // ---- Speed modes ----
+    /// <summary>Movement scale in Precision mode (0.35 = a turn moves the cursor 35 % as far).</summary>
+    public double PrecisionScale { get; init; } = 0.35;
+    public double FastScale { get; init; } = 2.0;
+    public double DrawingScale { get; init; } = 0.6;
+    /// <summary>Enter Precision automatically after holding steady for 2 s; leave it on a fast move.</summary>
+    public bool AutoPrecision { get; init; }
+
     // ---- Scrolling ----
     /// <summary>Multiplier on the watch's Crown scroll amount.</summary>
     public double ScrollSpeed { get; init; } = 1.0;
@@ -80,6 +101,9 @@ public sealed record PointerSettings
         FollowTimeConstant = Math.Clamp(FollowTimeConstant, 0.0005, 0.1),
         CursorRateHz = Math.Clamp(CursorRateHz, 60, 1000),
         PredictionMs = Math.Clamp(PredictionMs, 0, 80),
+        PrecisionScale = Math.Clamp(PrecisionScale, 0.05, 1),
+        FastScale = Math.Clamp(FastScale, 1, 6),
+        DrawingScale = Math.Clamp(DrawingScale, 0.05, 1),
         ScrollSpeed = Math.Clamp(ScrollSpeed, 0.05, 20),
         FallbackRewindSeconds = Math.Clamp(FallbackRewindSeconds, 0, 0.5),
     };

@@ -431,7 +431,7 @@ public class GestureMappingTests
         var h = WithRunner(out var runner, DefaultProfiles.CreatePresentation());
         var requested = new List<AppAction>();
         runner.AppActionRequested += (a, _) => requested.Add(a);
-        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.ButtonD));
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.ButtonG));
         Assert.Equal([AppAction.ToggleLaser], requested);
         await runner.DisposeAsync();
     }
@@ -450,7 +450,53 @@ public class GestureMappingTests
     public void Double_click_action()
     {
         var h = new EngineHarness();
-        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.HandDoubleTap)); // desktop default: double click
+        var profile = DefaultProfiles.CreateCustom();
+        profile.Mappings[WatchInput.HandDoubleTap] = ActionSpec.Of(ActionType.DoubleClick);
+        h.Engine.Profile = profile;
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.HandDoubleTap));
         Assert.Equal(2, h.Sink.Snapshot().Count(e => e.StartsWith("LeftDown")));
+    }
+
+    [Fact]
+    public async Task Desktop_defaults_follow_the_recommended_scheme()
+    {
+        var h = WithRunner(out var runner);
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.Shake));          // shake → Esc
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.HandDoubleTap));  // pinch twice → play/pause
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.FlickRight));     // next tab
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)WatchGesture.ButtonB));        // app switch
+        await runner.DrainAsync();
+        var keys = string.Join(" ", h.Sink.Snapshot());
+        Assert.Contains("KeyDown:Esc", keys);
+        Assert.Contains("KeyDown:MediaPlayPause", keys);
+        Assert.Contains("KeyDown:Ctrl KeyDown:Tab", keys);
+        Assert.Contains("KeyDown:Alt KeyDown:Tab", keys);
+        await runner.DisposeAsync();
+    }
+
+    [Theory]
+    [InlineData(WatchGesture.ButtonH, AppAction.LockPc)]
+    [InlineData(WatchGesture.ButtonG, AppAction.ShowKeyboard)]
+    [InlineData(WatchGesture.NextDisplay, AppAction.NextDisplay)]
+    public async Task System_actions_are_forwarded_to_the_app(WatchGesture gesture, AppAction expected)
+    {
+        var h = WithRunner(out var runner);
+        var requested = new List<AppAction>();
+        runner.AppActionRequested += (a, _) => requested.Add(a);
+        h.Send(PacketCodec.Encode(PacketKind.Gesture, (short)gesture));
+        Assert.Equal([expected], requested);
+        await runner.DisposeAsync();
+    }
+
+    [Fact]
+    public void Every_profile_labels_all_eight_remote_buttons()
+    {
+        foreach (var p in DefaultProfiles.Create().Where(p => p.Kind != ProfileKind.Custom))
+        {
+            var labels = p.ButtonLabels();
+            Assert.Equal(8, labels.Count);
+            Assert.All(labels, l => Assert.False(string.IsNullOrWhiteSpace(l.Label) || l.Label == "—", $"{p.Name} g{l.Gesture}"));
+            Assert.All(labels, l => Assert.True(l.Label.Length <= 14, $"{p.Name}: '{l.Label}' too long for the watch"));
+        }
     }
 }

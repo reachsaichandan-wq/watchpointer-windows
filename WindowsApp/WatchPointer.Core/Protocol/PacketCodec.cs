@@ -60,7 +60,7 @@ public static class PacketCodec
             case PacketKind.RightClick: packet = new ClickPacket(MouseButton.Right, ms); return true;
             case PacketKind.Scroll: packet = new ScrollPacket(a, b); return true;
             case PacketKind.Center: packet = new CenterPacket(); return true;
-            case PacketKind.Pause: packet = new PausePacket(a != 0); return true;
+            case PacketKind.Pause: packet = new PausePacket(a != 0, b == (short)PauseReason.Lowered ? PauseReason.Lowered : PauseReason.Button); return true;
             case PacketKind.Drag: packet = new DragPacket(a != 0, ms); return true;
             case PacketKind.Gesture:
                 if (!Enum.IsDefined((WatchGesture)a)) { error = DecodeError.OutOfRange; return false; }
@@ -150,6 +150,26 @@ public static class PacketCodec
     }
 
     public static byte[] EncodePcInfo(PcInfo info) => JsonSerializer.SerializeToUtf8Bytes(info, ProtocolJsonContext.Default.PcInfo);
+
+    /// <summary>Profile JSON for the watch; kept under 512 bytes (labels are trimmed if needed).</summary>
+    public static byte[] EncodeProfileState(ProfileState state)
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(state, ProtocolJsonContext.Default.ProfileState);
+        var maxLabel = 14;
+        while (bytes.Length > 512 && maxLabel > 3)
+        {
+            var max = maxLabel--;
+            state = state with { Buttons = state.Buttons.Select(b => b with { Label = b.Label.Length > max ? b.Label[..max] : b.Label }).ToList() };
+            bytes = JsonSerializer.SerializeToUtf8Bytes(state, ProtocolJsonContext.Default.ProfileState);
+        }
+        return bytes;
+    }
+
+    public static ProfileState? DecodeProfileState(ReadOnlySpan<byte> json)
+    {
+        try { return JsonSerializer.Deserialize(json, ProtocolJsonContext.Default.ProfileState); }
+        catch (JsonException) { return null; }
+    }
 
     public static PcInfo? DecodePcInfo(ReadOnlySpan<byte> json)
     {

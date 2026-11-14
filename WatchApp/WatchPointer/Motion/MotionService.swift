@@ -2,7 +2,7 @@ import CoreMotion
 import Foundation
 import WatchCore
 
-/// Reads device motion (gravity + gyroscope) and feeds the aim tracker. Battery-conscious:
+/// Reads device motion (gravity + gyroscope + user acceleration) and feeds the aim tracker. Battery-conscious:
 /// - runs only while connected and the app is in the foreground;
 /// - 100 Hz while pointing, 25 Hz while paused (aim keeps tracking so resuming lines up, but cheaper).
 final class MotionService: ObservableObject {
@@ -11,14 +11,10 @@ final class MotionService: ObservableObject {
 
     private let manager = CMMotionManager()
     let tracker = AimTracker()
-    private var flick = WristFlickDetector()
     private(set) var running = false
 
     /// Called on the main queue for every sample, after the tracker has been updated.
     var onSample: ((MotionSample) -> Void)?
-    /// Called when an (opt-in) wrist flick is detected.
-    var onFlick: ((TimeInterval) -> Void)?
-    var flickEnabled = false
 
     var isAvailable: Bool { manager.isDeviceMotionAvailable }
 
@@ -35,7 +31,6 @@ final class MotionService: ObservableObject {
                 rotationRate: Vector3(data.rotationRate.x, data.rotationRate.y, data.rotationRate.z),
                 userAcceleration: Vector3(data.userAcceleration.x, data.userAcceleration.y, data.userAcceleration.z))
             tracker.update(sample)
-            if flickEnabled, flick.update(sample) { onFlick?(sample.timestamp) }
             onSample?(sample)
         }
     }

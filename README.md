@@ -83,6 +83,7 @@ docs/            analysis, architecture, install guides, Bluetooth guide, troubl
 - [Apple Watch installation (free vs paid, what needs a Mac)](docs/WATCH_INSTALL.md)
 - [Bluetooth compatibility](docs/BLUETOOTH.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Controls (watch gestures, buttons, profiles, speed modes)](docs/CONTROLS.md)
 - [Pointer accuracy & responsiveness](docs/ACCURACY.md)
 - [Feature checklist](docs/CHECKLIST.md)
 

@@ -8,7 +8,7 @@ using WatchPointer.Core.Profiles;
 namespace WatchPointer.Core.Session;
 
 /// <summary>Actions the engine can't perform itself because they belong to the app (overlay, profile list).</summary>
-public enum AppAction { ToggleLaser, NextProfile, SwitchProfile }
+public enum AppAction { ToggleLaser, NextProfile, SwitchProfile, NextDisplay, LockPc, ShowKeyboard }
 
 /// <summary>Runs keyboard shortcuts and macros in order on a background worker so delays in a macro never block the
 /// Bluetooth or cursor threads. Parsed macros are cached.</summary>

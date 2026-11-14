@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using WatchPointer.Core.Bluetooth;
 using WatchPointer.Core.Diagnostics;
 using WatchPointer.Core.Input;
+using WatchPointer.Core.Pointer;
 using WatchPointer.Core.Profiles;
 using WatchPointer.Core.Protocol;
 using WatchPointer.Core.Session;
@@ -41,13 +42,33 @@ public sealed class ReceiverHost : IAsyncDisposable
         };
         Supervisor = new ReceiverSupervisor(Transport, Engine, Clock, loggers.CreateLogger<ReceiverSupervisor>())
         {
-            StateProvider = () => ((Engine.PcPaused ? PcStateFlags.Paused : PcStateFlags.None) | (Laser ? PcStateFlags.Laser : PcStateFlags.None), ActiveProfile.Name),
+            StateProvider = () =>
+            {
+                var s = Engine.Snapshot();
+                var flags = (s.PcPaused ? PcStateFlags.Paused : PcStateFlags.None)
+                          | (Laser ? PcStateFlags.Laser : PcStateFlags.None)
+                          | (s.SpeedMode != SpeedMode.Normal ? PcStateFlags.SpeedMode : PcStateFlags.None)
+                          | (s.DragLocked ? PcStateFlags.DragLocked : PcStateFlags.None);
+                return (flags, ActiveProfile.Name);
+            },
         };
+        Transport.ProfileStateProvider = () => PacketCodec.EncodeProfileState(new ProfileState
+        {
+            Profile = ActiveProfile.Name,
+            Mode = Engine.SpeedMode.ToString(),
+            DragLock = Engine.Snapshot().DragLocked,
+            Buttons = ActiveProfile.ButtonLabels(),
+        });
+        SystemActions = new SystemActions(loggers.CreateLogger<SystemActions>());
         Loop = new CursorLoop(Engine.Tick, 240, loggers.CreateLogger<CursorLoop>());
         Simulator = new SimulationService(this);
 
         Actions.AppActionRequested += OnAppAction;
-        Engine.Notice += n => { if (n.Notice is EngineNotice.PcPaused or EngineNotice.PcResumed) Supervisor.PublishState(); };
+        Engine.Notice += n =>
+        {
+            if (n.Notice is EngineNotice.PcPaused or EngineNotice.PcResumed or EngineNotice.SpeedModeChanged or EngineNotice.DragLockChanged)
+                Supervisor.PublishState();
+        };
         _settings.Changed += Apply;
         Apply(_settings.Current);
     }
@@ -63,6 +84,7 @@ public sealed class ReceiverHost : IAsyncDisposable
     public ReceiverSupervisor Supervisor { get; }
     public CursorLoop Loop { get; }
     public SimulationService Simulator { get; }
+    public SystemActions SystemActions { get; }
 
     public ControlProfile ActiveProfile { get; private set; } = DefaultProfiles.CreateDesktop();
 
@@ -126,6 +148,23 @@ public sealed class ReceiverHost : IAsyncDisposable
 
     public void TogglePause() => Engine.PcPaused = !Engine.PcPaused;
 
+    public void TogglePrecision() =>
+        Engine.SpeedMode = Engine.SpeedMode == SpeedMode.Precision ? SpeedMode.Normal : SpeedMode.Precision;
+
+    /// <summary>Moves the pointing area to the next monitor and centres the current aim on it.</summary>
+    public void NextDisplay()
+    {
+        var displays = Displays.Current.Displays;
+        if (displays.Count < 2) return;
+        var p = _settings.Current.Pointer;
+        var currentId = p.PointingArea == PointingArea.SpecificDisplay ? p.PointingDisplayId : Displays.Current.Primary.Id;
+        var index = displays.ToList().FindIndex(d => d.Id == currentId);
+        var next = displays[(index + 1) % displays.Count];
+        _settings.Update(s => s with { Pointer = s.Pointer with { PointingArea = PointingArea.SpecificDisplay, PointingDisplayId = next.Id } });
+        Engine.Recenter();
+        _log.LogInformation("Pointing at display {Display}", next.Name);
+    }
+
     public void Recenter() => Engine.Recenter();
 
     public void TrustCurrentWatch()
@@ -141,6 +180,9 @@ public sealed class ReceiverHost : IAsyncDisposable
             case AppAction.ToggleLaser: Laser = !Laser; break;
             case AppAction.NextProfile: NextProfile(); break;
             case AppAction.SwitchProfile when argument is not null: SwitchProfile(argument); break;
+            case AppAction.NextDisplay: NextDisplay(); break;
+            case AppAction.LockPc: SystemActions.LockPc(); break;
+            case AppAction.ShowKeyboard: SystemActions.ShowKeyboard(); break;
         }
     }
 

@@ -24,7 +24,7 @@ public sealed class HotkeyService : IDisposable
     /// <summary>Hotkeys that failed to register (usually because another app already owns them).</summary>
     public List<string> Conflicts { get; } = [];
 
-    public void Apply(HotkeySettings settings, Action togglePause, Action recenter, Action toggleLaser, Action nextProfile)
+    public void Apply(HotkeySettings settings, Action togglePause, Action recenter, Action toggleLaser, Action nextProfile, Action togglePrecision)
     {
         UnregisterAll();
         Conflicts.Clear();
@@ -33,6 +33,7 @@ public sealed class HotkeyService : IDisposable
         Register(settings.Recenter, recenter);
         Register(settings.ToggleLaser, toggleLaser);
         Register(settings.NextProfile, nextProfile);
+        Register(settings.TogglePrecision, togglePrecision);
     }
 
     /// <summary>Validates a hotkey string: exactly one chord with at least one modifier.</summary>

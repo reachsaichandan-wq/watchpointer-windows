@@ -159,8 +159,12 @@ public sealed class PointerEngine
                 case DragPacket drag: OnDrag(drag, arrival); break;
                 case ScrollPacket scroll: OnScroll(scroll); break;
                 case CenterPacket: OnWatchCenter(); break;
-                case PausePacket pause: OnWatchPause(pause.Paused); break;
+                case PausePacket pause: OnWatchPause(pause.Paused, pause.Reason); break;
                 case InfoPacket info: OnInfo(info.Info); break;
+                case GesturePacket gesture when DefaultProfiles.FixedAction(gesture.Gesture) is { } fixedAction:
+                    Raise(EngineNotice.Gesture, gesture.Gesture.ToString());
+                    Execute(ActionSpec.Of(fixedAction), When(gesture.WatchMs), arrival, WatchInput.PadTap);
+                    break;
                 case GesturePacket gesture:
                     if (DefaultProfiles.FromGesture(gesture.Gesture) is { } input)
                     {
@@ -231,7 +235,18 @@ public sealed class PointerEngine
         {
             var area = layout.PointingArea(_settings.PointingArea, _settings.PointingDisplayId);
             var p = AbsoluteProjector.Project(left, up, area, _settings);
-            if (_settings.ReanchorAtEdges)
+            if (_speedMode != SpeedMode.Normal)
+            {
+                // Scaled movement around the point where the mode was switched on: no jump, finer/coarser control.
+                if (_modeAnchorProjected is null || _modeAnchorScreen is null) { _modeAnchorProjected = p; _modeAnchorScreen = _target ?? p; }
+                var scale = CurrentScale();
+                var scaled = _modeAnchorScreen.Value + (p - _modeAnchorProjected.Value) * scale;
+                var clamped = layout.Clamp(scaled);
+                // Past the desktop edge: slide the anchor so coming back moves the cursor at once.
+                if ((clamped - scaled).ManhattanLength > 0.5) _modeAnchorProjected += (scaled - clamped) * (1 / scale);
+                p = clamped;
+            }
+            else if (_settings.ReanchorAtEdges)
             {
                 var clamped = layout.Clamp(p);
                 if ((clamped - p).ManhattanLength > 0.5)
@@ -269,11 +284,86 @@ public sealed class PointerEngine
             var fl = _filterX.Filter(left * RelativeFilterScale, validDt) / RelativeFilterScale;
             var fu = _filterY.Filter(up * RelativeFilterScale, validDt) / RelativeFilterScale;
             var (dx, dy) = _relative.Update(fl, fu, validDt, _settings);
-            _target = layout.Clamp(_target!.Value + new PointD(dx, dy));
+            _target = layout.Clamp(_target!.Value + new PointD(dx, dy) * CurrentScale());
             _rawPoint = _target!.Value;
         }
         UpdateVelocity(_target!.Value, _rawPoint, validDt, fresh);
+        UpdateAutoPrecision(now);
         _pendingArrival ??= now;
+    }
+
+    // ------------------------------------------------------------------ speed modes, drag lock
+
+    /// <summary>A still hand below this speed (hand speed, px/s at normal scale) for 2 s enters auto precision.</summary>
+    public const double AutoPrecisionStillSpeed = 25, AutoPrecisionHoldSeconds = 2, AutoPrecisionExitSpeed = 600;
+
+    private SpeedMode _speedMode = SpeedMode.Normal;
+    private PointD? _modeAnchorScreen, _modeAnchorProjected;
+    private bool _autoPrecision, _dragLocked;
+    private double? _stillSince;
+
+    public SpeedMode SpeedMode
+    {
+        get { lock (_gate) return _speedMode; }
+        set
+        {
+            lock (_gate) SetSpeedModeLocked(value, auto: false);
+            FlushNotices();
+        }
+    }
+
+    private double CurrentScale() => _speedMode switch
+    {
+        SpeedMode.Precision => _settings.PrecisionScale,
+        SpeedMode.Fast => _settings.FastScale,
+        SpeedMode.Drawing => _settings.DrawingScale,
+        _ => 1,
+    };
+
+    private void SetSpeedModeLocked(SpeedMode mode, bool auto)
+    {
+        if (mode == _speedMode) return;
+        _autoPrecision = auto && mode == SpeedMode.Precision;
+        _stillSince = null;
+        if (mode == SpeedMode.Normal && _settings.Mode == PointerMode.Absolute && _target is { } here)
+        {
+            // Back to plain laser pointing: shift the centre so the current aim maps to where the cursor is now.
+            var area = _displays.Current.PointingArea(_settings.PointingArea, _settings.PointingDisplayId);
+            var (l, u) = AbsoluteProjector.Unproject(here, area, _settings);
+            _offsetLeft = _aimLeft - l;
+            _offsetUp = _aimUp - u;
+        }
+        _speedMode = mode;
+        _modeAnchorScreen = _modeAnchorProjected = null; // re-anchored on the next sample
+        ApplyFilterSettings();
+        Raise(EngineNotice.SpeedModeChanged, mode.ToString());
+    }
+
+    private void UpdateAutoPrecision(double now)
+    {
+        if (!_settings.AutoPrecision) { _stillSince = null; return; }
+        var handSpeed = Math.Sqrt(_rawVelocity.X * _rawVelocity.X + _rawVelocity.Y * _rawVelocity.Y) / CurrentScale();
+        if (_speedMode == SpeedMode.Normal)
+        {
+            if (handSpeed < AutoPrecisionStillSpeed)
+            {
+                _stillSince ??= now;
+                if (now - _stillSince >= AutoPrecisionHoldSeconds) SetSpeedModeLocked(SpeedMode.Precision, auto: true);
+            }
+            else _stillSince = null;
+        }
+        else if (_autoPrecision && handSpeed > AutoPrecisionExitSpeed)
+        {
+            SetSpeedModeLocked(SpeedMode.Normal, auto: false);
+        }
+    }
+
+    private void ToggleDragLock(double now)
+    {
+        if (_dragging) { Drop(null); return; }
+        Grab(now, now);
+        _dragLocked = _dragging;
+        if (_dragLocked) Raise(EngineNotice.DragLockChanged, "on");
     }
 
     // ------------------------------------------------------------------ prediction
@@ -329,6 +419,7 @@ public sealed class PointerEngine
     /// shows the hand slowing down (so stopping doesn't overshoot).</summary>
     private PointD Predict(PointD target, double now)
     {
+        if (_speedMode == SpeedMode.Drawing) return target; // drawing: never overshoot a stroke
         var lead = PredictionSeconds();
         if (lead <= 0) return target;
         var speed = Math.Sqrt(_velocity.X * _velocity.X + _velocity.Y * _velocity.Y);
@@ -449,6 +540,13 @@ public sealed class PointerEngine
             case ActionType.ToggleLaser: Actions?.RequestApp(AppAction.ToggleLaser); return;
             case ActionType.NextProfile: Actions?.RequestApp(AppAction.NextProfile); return;
             case ActionType.SwitchProfile: Actions?.RequestApp(AppAction.SwitchProfile, action.Profile); return;
+            case ActionType.TogglePrecision:
+                SetSpeedModeLocked(_speedMode == SpeedMode.Precision ? SpeedMode.Normal : SpeedMode.Precision, auto: false);
+                return;
+            case ActionType.ToggleDragLock: ToggleDragLock(now); return;
+            case ActionType.NextDisplay: Actions?.RequestApp(AppAction.NextDisplay); return;
+            case ActionType.LockPc: Actions?.RequestApp(AppAction.LockPc); return;
+            case ActionType.ShowKeyboard: Actions?.RequestApp(AppAction.ShowKeyboard); return;
         }
     }
 
@@ -508,6 +606,11 @@ public sealed class PointerEngine
         _input.Button(MouseButton.Left, false);
         _dragging = false;
         Raise(EngineNotice.Dropped);
+        if (_dragLocked)
+        {
+            _dragLocked = false;
+            Raise(EngineNotice.DragLockChanged, "off");
+        }
     }
 
     private void MoveIfNeeded(PointI p)
@@ -600,14 +703,17 @@ public sealed class PointerEngine
         _target = _shown = new PointD(c.X, c.Y);
     }
 
-    private void OnWatchPause(bool paused)
+    private void OnWatchPause(bool paused, PauseReason reason)
     {
         _watchPaused = paused;
+        _pauseReason = paused ? reason : PauseReason.Button;
         if (paused) Drop(null);
         _phase = paused ? PointerPhase.Paused : PointerPhase.Live;
-        _log.LogInformation(paused ? "Watch paused" : "Watch resumed");
-        Raise(paused ? EngineNotice.Paused : EngineNotice.Resumed);
+        _log.LogInformation(paused ? "Watch paused ({Reason})" : "Watch resumed", reason);
+        Raise(paused ? EngineNotice.Paused : EngineNotice.Resumed, reason == PauseReason.Lowered ? "lowered" : null);
     }
+
+    private PauseReason _pauseReason;
 
     private void OnInfo(WatchInfo info)
     {
@@ -644,8 +750,10 @@ public sealed class PointerEngine
 
     private void ApplyFilterSettings()
     {
-        _filterX.MinCutoff = _filterY.MinCutoff = _settings.SmoothingMinCutoff;
-        _filterX.Beta = _filterY.Beta = _settings.SmoothingBeta;
+        // Drawing: steadier strokes (lower cutoff, smaller speed boost); prediction is also off in that mode.
+        var drawing = _speedMode == SpeedMode.Drawing;
+        _filterX.MinCutoff = _filterY.MinCutoff = _settings.SmoothingMinCutoff * (drawing ? 0.6 : 1);
+        _filterX.Beta = _filterY.Beta = _settings.SmoothingBeta * (drawing ? 0.5 : 1);
     }
 
     private void AddHistory(double time, PointD p)
@@ -706,6 +814,10 @@ public sealed class PointerEngine
                 Phase = _phase,
                 PcPaused = _pcPaused,
                 Dragging = _dragging,
+                DragLocked = _dragLocked,
+                SpeedMode = _speedMode,
+                AutoPrecisionActive = _autoPrecision,
+                PauseReason = _pauseReason,
                 Watch = _watch,
                 WatchUntrusted = _untrusted,
                 Mode = _settings.Mode,

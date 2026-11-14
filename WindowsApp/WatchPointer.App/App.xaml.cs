@@ -81,7 +81,7 @@ public partial class App : Application
 
         _hotkeys = new HotkeyService(_services.GetRequiredService<ILogger<HotkeyService>>());
         _services.GetRequiredService<HotkeyConflicts>().Source = () => _hotkeys.Conflicts;
-        void ApplyHotkeys(AppSettings s) => _hotkeys.Apply(s.Hotkeys, _host.TogglePause, _host.Recenter, () => _host.Laser = !_host.Laser, _host.NextProfile);
+        void ApplyHotkeys(AppSettings s) => _hotkeys.Apply(s.Hotkeys, _host.TogglePause, _host.Recenter, () => _host.Laser = !_host.Laser, _host.NextProfile, _host.TogglePrecision);
         ApplyHotkeys(settings.Current);
         var lastHotkeys = settings.Current.Hotkeys;
         settings.Changed += s => OnUi(() =>

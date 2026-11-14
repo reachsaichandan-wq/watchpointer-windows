@@ -5,7 +5,10 @@ enum WatchSettingKey {
     static let crownSpeed = "crownSpeed"          // multiplier on Crown scroll distance
     static let invertCrown = "invertCrown"
     static let swipes = "swipesEnabled"
-    static let wristFlick = "wristFlickEnabled"   // off by default: ordinary pointing can come close to a flick
+    static let shake = "shakeEnabled"             // on: repeated reversals of >1 g; pointing never does that
+    static let wristFlick = "wristFlickEnabled"   // off: brisk pointing can approach a flick
+    static let twist = "twistEnabled"             // off: rolling the wrist past 35° repeats volume steps
+    static let lowerToPause = "lowerToPause"      // on: pointing at the floor pauses the cursor
     static let driftCompensation = "driftCompensation"
     static let haptics = "haptics"
 }
@@ -16,7 +19,10 @@ enum WatchSettingDefaults {
             WatchSettingKey.crownSpeed: 1.0,
             WatchSettingKey.invertCrown: false,
             WatchSettingKey.swipes: true,
+            WatchSettingKey.shake: true,
             WatchSettingKey.wristFlick: false,
+            WatchSettingKey.twist: false,
+            WatchSettingKey.lowerToPause: true,
             WatchSettingKey.driftCompensation: false,
             WatchSettingKey.haptics: true,
         ])

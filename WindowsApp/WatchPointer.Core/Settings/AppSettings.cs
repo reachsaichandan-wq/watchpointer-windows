@@ -30,6 +30,7 @@ public sealed record HotkeySettings
     public string Recenter { get; init; } = "Ctrl+Alt+C";
     public string ToggleLaser { get; init; } = "Ctrl+Alt+L";
     public string NextProfile { get; init; } = "Ctrl+Alt+N";
+    public string TogglePrecision { get; init; } = "Ctrl+Alt+F";
     public bool Enabled { get; init; } = true;
 }
 
@@ -59,7 +60,20 @@ public sealed record AppSettings
             .Select(p => p with { Mappings = p.Mappings ?? [] })
             .ToList();
         foreach (var d in DefaultProfiles.Create())
-            if (!profiles.Any(p => string.Equals(p.Name, d.Name, StringComparison.OrdinalIgnoreCase))) profiles.Add(d);
+        {
+            var index = profiles.FindIndex(p => string.Equals(p.Name, d.Name, StringComparison.OrdinalIgnoreCase));
+            if (index < 0) { profiles.Add(d); continue; }
+            // Built-in profile saved by an older version: add inputs that didn't exist then, and labels for actions
+            // that still match the default. Anything the user changed is kept.
+            var mappings = new Dictionary<WatchInput, ActionSpec>(profiles[index].Mappings);
+            foreach (var (input, action) in d.Mappings)
+            {
+                if (!mappings.TryGetValue(input, out var current)) mappings[input] = action;
+                else if (current.Label is null && current.Type == action.Type && current.Keys == action.Keys && current.Profile == action.Profile)
+                    mappings[input] = current with { Label = action.Label };
+            }
+            profiles[index] = profiles[index] with { Mappings = mappings };
+        }
         var active = profiles.Any(p => p.Name == ActiveProfile) ? ActiveProfile : DefaultProfiles.Desktop;
         var pointer = Pointer ?? new();
         // v1 → v2: the default responsiveness changed from the original tuning to "Balanced" (prediction on).

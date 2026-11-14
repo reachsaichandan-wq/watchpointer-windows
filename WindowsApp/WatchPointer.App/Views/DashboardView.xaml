@@ -93,11 +93,14 @@
                                     </StackPanel>
                                 </Button>
                             </WrapPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <WrapPanel Margin="0,8,0,0">
                                 <TextBlock Text="Active profile" VerticalAlignment="Center" Margin="0,0,12,0" />
-                                <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding SelectedProfile}" MinWidth="200" />
-                            </StackPanel>
-                            <TextBlock Text="Hotkeys (default): Ctrl+Alt+P pause · Ctrl+Alt+C recenter · Ctrl+Alt+L laser · Ctrl+Alt+N next profile"
+                                <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding SelectedProfile}" MinWidth="180" Margin="0,0,24,0" />
+                                <TextBlock Text="Speed mode" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <ComboBox ItemsSource="{Binding SpeedModes}" SelectedItem="{Binding SelectedSpeedMode}" MinWidth="140" />
+                                <TextBlock Text="{Binding ModeDetail}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            </WrapPanel>
+                            <TextBlock Text="Hotkeys (default): Ctrl+Alt+P pause · Ctrl+Alt+C recenter · Ctrl+Alt+F precision · Ctrl+Alt+L laser · Ctrl+Alt+N next profile"
                                        Style="{StaticResource Caption}" Margin="0,12,0,0" />
                         </StackPanel>
 

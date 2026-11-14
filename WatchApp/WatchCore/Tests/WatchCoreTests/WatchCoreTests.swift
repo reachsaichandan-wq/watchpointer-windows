@@ -234,3 +234,92 @@ final class GestureTests: XCTestCase {
         XCTAssertEqual(s.pending, -0.5, accuracy: 1e-9)
     }
 }
+
+final class MotionGestureTests: XCTestCase {
+    /// Watch held like a remote (display up), optionally rolled / tilted, with given rates and acceleration.
+    private func sample(_ t: Double, pitch: Double = 0, roll: Double = 0, yawRate: Double = 0, accel: Vector3 = Vector3(0, 0, 0)) -> MotionSample {
+        // up vector in device frame for pitch (12 o'clock edge up) and roll (clockwise = right side down → up.x < 0).
+        let up = Vector3(-sin(roll) * cos(pitch), sin(pitch), cos(roll) * cos(pitch))
+        return MotionSample(timestamp: t, gravity: Vector3(-up.x, -up.y, -up.z), rotationRate: Vector3(up.x * yawRate, up.y * yawRate, up.z * yawRate), userAcceleration: accel)
+    }
+
+    func testShakeNeedsRepeatedReversals() {
+        var d = ShakeDetector()
+        var fired = 0
+        var t = 0.0
+        for i in 0..<8 { // 8 alternating 1.5 g peaks, 100 ms apart, with quiet samples between
+            if d.update(sample(t, accel: Vector3(i % 2 == 0 ? 1.5 : -1.5, 0, 0))) { fired += 1 }
+            t += 0.05
+            if d.update(sample(t)) { fired += 1 }
+            t += 0.05
+        }
+        XCTAssertEqual(fired, 1) // once, then refractory
+    }
+
+    func testOneBumpIsNotAShake() {
+        var d = ShakeDetector()
+        XCTAssertFalse(d.update(sample(0, accel: Vector3(2, 0, 0))))
+        XCTAssertFalse(d.update(sample(0.05)))
+        XCTAssertFalse(d.update(sample(0.1, accel: Vector3(-2, 0, 0))))
+        XCTAssertFalse(d.update(sample(0.15)))
+    }
+
+    func testFlickDirectionFromFirstSwing() {
+        var d = FlickDetector()
+        XCTAssertNil(d.update(sample(0.00, yawRate: -8)))   // fast turn right…
+        XCTAssertNil(d.update(sample(0.04, yawRate: -9)))
+        XCTAssertNil(d.update(sample(0.08, yawRate: 7)))    // …and back
+        XCTAssertEqual(d.update(sample(0.12, yawRate: 0)), .flickRight)
+    }
+
+    func testBriskPointingIsNotAFlick() {
+        var d = FlickDetector()
+        var result: WatchGesture?
+        for i in 0..<40 { result = result ?? d.update(sample(Double(i) * 0.01, yawRate: 3)) } // 170°/s for 0.4 s
+        result = result ?? d.update(sample(0.5, yawRate: 0))
+        XCTAssertNil(result)
+    }
+
+    func testTwistFiresThenRepeatsWhileHeld() {
+        var d = TwistDetector()
+        d.recenter(sample(0))
+        XCTAssertNil(d.update(sample(0.1, roll: 0.2)))                       // 11°: nothing
+        XCTAssertEqual(d.update(sample(0.2, roll: 0.8)), .twistClockwise)    // 46°
+        XCTAssertNil(d.update(sample(0.3, roll: 0.8)))
+        XCTAssertEqual(d.update(sample(0.8, roll: 0.8)), .twistClockwise)    // repeat
+        XCTAssertNil(d.update(sample(0.9, roll: 0)))                          // released
+        XCTAssertEqual(d.update(sample(1.0, roll: -0.8)), .twistAnticlockwise)
+    }
+
+    func testPitchingDoesNotLookLikeATwist() {
+        var d = TwistDetector()
+        d.recenter(sample(0))
+        for i in 1...20 { XCTAssertNil(d.update(sample(Double(i) * 0.05, pitch: Double(i) * 0.05))) } // up to 57° pitch
+    }
+
+    func testLoweringPausesAndRaisingResumes() {
+        var d = LowerDetector()
+        XCTAssertNil(d.update(sample(0, pitch: -1.3)))           // pointing at the floor…
+        XCTAssertNil(d.update(sample(0.2, pitch: -1.3)))
+        XCTAssertEqual(d.update(sample(0.5, pitch: -1.3)), true) // …held 0.4 s → lowered
+        XCTAssertNil(d.update(sample(0.6, pitch: -0.8)))         // -46°: still lowered (hysteresis)
+        XCTAssertNil(d.update(sample(0.7, pitch: 0)))
+        XCTAssertEqual(d.update(sample(0.85, pitch: 0)), false)  // raised
+    }
+
+    func testQuickPointAtTheTaskbarDoesNotPause() {
+        var d = LowerDetector()
+        XCTAssertNil(d.update(sample(0, pitch: -1.1)))
+        XCTAssertNil(d.update(sample(0.2, pitch: -1.1)))
+        XCTAssertNil(d.update(sample(0.3, pitch: 0)))
+        XCTAssertFalse(d.lowered)
+    }
+
+    func testProfileStateDecodes() {
+        let json = #"{"profile":"Desktop","mode":"Precision","dragLock":false,"buttons":[{"g":16,"label":"Desktop"},{"g":23,"label":"Lock PC"}]}"#
+        let state = ProfileState.decode(Data(json.utf8))
+        XCTAssertEqual(state?.mode, "Precision")
+        XCTAssertEqual(state?.label(for: .buttonH), "Lock PC")
+        XCTAssertNil(state?.label(for: .buttonC))
+    }
+}

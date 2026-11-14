@@ -32,6 +32,8 @@ public enum EngineNotice
     WatchInfo,
     UntrustedWatch,
     Gesture,
+    SpeedModeChanged,
+    DragLockChanged,
 }
 
 public readonly record struct EngineNoticeArgs(EngineNotice Notice, string? Detail = null);
@@ -42,6 +44,10 @@ public sealed record EngineSnapshot
     public PointerPhase Phase { get; init; }
     public bool PcPaused { get; init; }
     public bool Dragging { get; init; }
+    public bool DragLocked { get; init; }
+    public SpeedMode SpeedMode { get; init; }
+    public bool AutoPrecisionActive { get; init; }
+    public PauseReason PauseReason { get; init; }
     public WatchInfo? Watch { get; init; }
     public bool WatchUntrusted { get; init; }
     public PointerMode Mode { get; init; }

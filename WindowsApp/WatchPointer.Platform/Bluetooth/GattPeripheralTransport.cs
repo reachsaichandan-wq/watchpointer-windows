@@ -26,7 +26,7 @@ public sealed class GattPeripheralTransport : IPeripheralTransport
     private readonly object _clientsGate = new();
     private readonly Dictionary<string, ClientState> _clients = [];
     private GattServiceProvider? _provider;
-    private GattLocalCharacteristic? _input, _output, _info;
+    private GattLocalCharacteristic? _input, _output, _info, _profile;
     private Radio? _radio;
     private volatile bool _advertising;
     private TaskCompletionSource<GattServiceProviderAdvertisementStatusChangedEventArgs>? _advertisingStarted;
@@ -51,6 +51,9 @@ public sealed class GattPeripheralTransport : IPeripheralTransport
     public bool RequestLowLatency { get; set; } = true;
     /// <summary>JSON served on the info characteristic.</summary>
     public PcInfo PcInfo { get; set; } = new() { Name = Environment.MachineName, App = "1.0.0" };
+
+    /// <summary>Supplies the profile characteristic's current value (active profile, mode, button labels).</summary>
+    public Func<byte[]>? ProfileStateProvider { get; set; }
 
     public event Action<ReadOnlyMemory<byte>, double>? PacketReceived;
     public event Action<ConnectedClient>? ClientConnected;
@@ -148,6 +151,19 @@ public sealed class GattPeripheralTransport : IPeripheralTransport
             if (info.Error == BluetoothError.Success) _info = info.Characteristic;
             else _log.LogWarning("Info characteristic unavailable ({Error}); v2 watches will show a generic name", info.Error);
 
+            var profile = await _provider.Service.CreateCharacteristicAsync(ProtocolConstants.ProfileUuid, new GattLocalCharacteristicParameters
+            {
+                CharacteristicProperties = GattCharacteristicProperties.Read,
+                ReadProtectionLevel = GattProtectionLevel.Plain,
+                UserDescription = "WatchPointer profile",
+            }).AsTask(cancellationToken);
+            if (profile.Error == BluetoothError.Success)
+            {
+                _profile = profile.Characteristic;
+                _profile.ReadRequested += OnProfileReadRequested;
+            }
+            else _log.LogWarning("Profile characteristic unavailable ({Error}); watch buttons will show generic labels", profile.Error);
+
             _advertisingStarted = new TaskCompletionSource<GattServiceProviderAdvertisementStatusChangedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
             _provider.AdvertisementStatusChanged += OnAdvertisementStatusChanged;
             _provider.StartAdvertising(new GattServiceProviderAdvertisingParameters { IsConnectable = true, IsDiscoverable = true });
@@ -200,8 +216,9 @@ public sealed class GattPeripheralTransport : IPeripheralTransport
         }
         if (_input is not null) _input.WriteRequested -= OnWriteRequested;
         if (_output is not null) _output.SubscribedClientsChanged -= OnSubscribedClientsChanged;
+        if (_profile is not null) _profile.ReadRequested -= OnProfileReadRequested;
         _provider = null;
-        _input = _output = _info = null;
+        _input = _output = _info = _profile = null;
 
         List<ClientState> dropped;
         lock (_clientsGate)
@@ -255,6 +272,22 @@ public sealed class GattPeripheralTransport : IPeripheralTransport
         {
             deferral.Complete();
         }
+    }
+
+    /// <summary>Dynamic read: the current profile JSON, honouring the request offset for long (blob) reads.</summary>
+    private async void OnProfileReadRequested(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
+    {
+        var deferral = args.GetDeferral();
+        try
+        {
+            var request = await args.GetRequestAsync();
+            if (request is null) return;
+            var value = ProfileStateProvider?.Invoke() ?? [];
+            var offset = (int)Math.Min(request.Offset, (uint)value.Length);
+            request.RespondWithValue(value.AsSpan(offset).ToArray().AsBuffer());
+        }
+        catch (Exception ex) { _log.LogDebug(ex, "Profile read failed"); }
+        finally { deferral.Complete(); }
     }
 
     private void OnSubscribedClientsChanged(GattLocalCharacteristic sender, object args)

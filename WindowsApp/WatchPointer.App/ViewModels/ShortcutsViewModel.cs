@@ -31,6 +31,7 @@ public sealed partial class ShortcutsViewModel : PageViewModel
     [ObservableProperty] private string _recenter = "";
     [ObservableProperty] private string _toggleLaser = "";
     [ObservableProperty] private string _nextProfile = "";
+    [ObservableProperty] private string _togglePrecision = "";
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private string _testMacro = "Win+Tab";
     [ObservableProperty] private string _testResult = "";
@@ -60,6 +61,7 @@ public sealed partial class ShortcutsViewModel : PageViewModel
         Recenter = h.Recenter;
         ToggleLaser = h.ToggleLaser;
         NextProfile = h.NextProfile;
+        TogglePrecision = h.TogglePrecision;
         _loading = false;
         Refresh();
     }
@@ -73,13 +75,13 @@ public sealed partial class ShortcutsViewModel : PageViewModel
     [RelayCommand]
     private void Save()
     {
-        foreach (var (name, value) in new[] { ("Pause", TogglePause), ("Recenter", Recenter), ("Laser", ToggleLaser), ("Next profile", NextProfile) })
+        foreach (var (name, value) in new[] { ("Pause", TogglePause), ("Recenter", Recenter), ("Laser", ToggleLaser), ("Next profile", NextProfile), ("Precision", TogglePrecision) })
         {
             if (!HotkeyService.TryParse(value, out _, out _, out var error)) { Status = $"{name}: {error}"; return; }
         }
         _settings.Update(s => s with
         {
-            Hotkeys = new HotkeySettings { Enabled = Enabled, TogglePause = TogglePause, Recenter = Recenter, ToggleLaser = ToggleLaser, NextProfile = NextProfile },
+            Hotkeys = new HotkeySettings { Enabled = Enabled, TogglePause = TogglePause, Recenter = Recenter, ToggleLaser = ToggleLaser, NextProfile = NextProfile, TogglePrecision = TogglePrecision },
         });
         Refresh();
     }

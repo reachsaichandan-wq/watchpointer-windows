@@ -1,0 +1,127 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:PointerViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="980">
+                <TextBlock Text="Pointer settings" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="Changes apply immediately. Defaults match the original WatchPointer." Style="{StaticResource PageSubtitle}" />
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Mode" Style="{StaticResource SectionHeader}" />
+                        <RadioButton GroupName="mode" IsChecked="{Binding Absolute}" Content="Absolute — point like a laser pointer: where the watch points is where the cursor goes" />
+                        <RadioButton GroupName="mode" IsChecked="{Binding Absolute, Converter={StaticResource InverseBool}}" Margin="0,6,0,0"
+                                     Content="Relative — air mouse: turning the wrist moves the cursor by that much, from wherever it is" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Visibility="{Binding Absolute, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.ColumnSpan="3" Text="Absolute pointing" Style="{StaticResource SectionHeader}" />
+
+                        <TextBlock Grid.Row="1" Text="Horizontal speed" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="1" Grid.Column="1" Minimum="0.3" Maximum="4" Value="{Binding HorizontalSpeed}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding HorizontalSpeed, StringFormat=F2}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ReachText}" Style="{StaticResource Caption}" Margin="0,0,0,6" />
+
+                        <TextBlock Grid.Row="3" Text="Vertical speed" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="3" Grid.Column="1" Minimum="0.3" Maximum="4" Value="{Binding VerticalSpeed}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding VerticalSpeed, StringFormat=F2}" Style="{StaticResource ValueText}" />
+
+                        <TextBlock Grid.Row="4" Text="Angle limit (°)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="4" Grid.Column="1" Minimum="20" Maximum="85" Value="{Binding MaxAngle}" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding MaxAngle, StringFormat=F0}" Style="{StaticResource ValueText}" />
+
+                        <TextBlock Grid.Row="5" Text="Pointing area" Style="{StaticResource SettingLabel}" />
+                        <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{Binding Areas}" SelectedItem="{Binding Area}" HorizontalAlignment="Left" MinWidth="220" Margin="0,4" />
+
+                        <TextBlock Grid.Row="6" Text="Display (for SpecificDisplay)" Style="{StaticResource SettingLabel}" />
+                        <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Displays}" SelectedItem="{Binding Display}" DisplayMemberPath="Label" HorizontalAlignment="Left" MinWidth="320" Margin="0,4" />
+
+                        <CheckBox Grid.Row="7" Grid.ColumnSpan="3" IsChecked="{Binding Reanchor}" Margin="0,8,0,0"
+                                  Content="Re-anchor at screen edges (pointing past an edge shifts the centre, which also removes slow heading drift)" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Visibility="{Binding Absolute, Converter={StaticResource InverseBoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Grid.ColumnSpan="3" Text="Relative movement" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Grid.Row="1" Text="Speed (pixels per degree)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="1" Grid.Column="1" Minimum="5" Maximum="120" Value="{Binding RelativeSpeed}" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding RelativeSpeed, StringFormat=F0}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="2" Text="Acceleration" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="3" Value="{Binding RelativeAcceleration}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding RelativeAcceleration, StringFormat=F2}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="3" Text="Dead zone (°/s)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="20" Value="{Binding DeadZone}" TickFrequency="0.5" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding DeadZone, StringFormat=F1}" Style="{StaticResource ValueText}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Grid.ColumnSpan="3" Text="Smoothing (1€ filter)" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Grid.Row="1" Text="Steadiness when still (Hz, lower = steadier)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="1" Grid.Column="1" Minimum="0.1" Maximum="5" Value="{Binding Steady}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Steady, StringFormat=F2}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="2" Text="Quickness on fast moves (higher = less lag)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="0.1" Value="{Binding Quick}" TickFrequency="0.001" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Quick, StringFormat=F3}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="3" Text="Glide between samples (ms)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="40" Value="{Binding FollowMs}" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding FollowMs, StringFormat=F0}" Style="{StaticResource ValueText}" />
+                        <TextBlock Grid.Row="4" Text="Cursor update rate (Hz)" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="4" Grid.Column="1" Minimum="60" Maximum="480" Value="{Binding CursorRate}" TickFrequency="20" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding CursorRate}" Style="{StaticResource ValueText}" />
+                        <StackPanel Grid.Row="5" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox Content="Invert horizontal" IsChecked="{Binding InvertHorizontal}" Margin="0,0,24,0" />
+                            <CheckBox Content="Invert vertical" IsChecked="{Binding InvertVertical}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Grid.ColumnSpan="3" Text="Scrolling (Digital Crown)" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Grid.Row="1" Text="Scroll speed" Style="{StaticResource SettingLabel}" />
+                        <Slider Grid.Row="1" Grid.Column="1" Minimum="0.1" Maximum="5" Value="{Binding ScrollSpeed}" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ScrollSpeed, StringFormat=F2}" Style="{StaticResource ValueText}" />
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox Content="Invert scroll direction" IsChecked="{Binding InvertScroll}" Margin="0,0,24,0" />
+                            <CheckBox Content="Smooth scrolling (partial wheel steps)" IsChecked="{Binding SmoothScroll}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Button Content="Reset pointer settings to defaults" Command="{Binding ResetDefaultsCommand}" HorizontalAlignment="Left" Padding="14,8" />
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Windows-only implementations: BLE GATT server (WinRT), SendInput, monitor enumeration, high-resolution loop. -->
+  <PropertyGroup>
+    <!-- 22621 SDK projection so the Windows 11 connection-parameter API is available; every newer API is guarded by
+         ApiInformation checks at runtime, and the minimum supported OS is Windows 10 2004 (19041). -->
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>WatchPointer.Platform</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WatchPointer.Core\WatchPointer.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The WPF app uses a few window/hotkey P/Invokes for the laser overlay and global hotkeys. -->
+    <InternalsVisibleTo Include="WatchPointer" />
+  </ItemGroup>
+</Project>

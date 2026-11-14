@@ -1,0 +1,58 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:GesturesViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="1040">
+                <TextBlock Text="Gestures" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="{Binding Note}" Style="{StaticResource PageSubtitle}" />
+
+                <Border Style="{StaticResource Card}">
+                    <WrapPanel>
+                        <TextBlock Text="Profile" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding ProfileName}" MinWidth="200" Margin="0,0,32,0" />
+                        <TextBlock Text="Digital Crown" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox ItemsSource="{Binding CrownModes}" SelectedItem="{Binding Crown}" MinWidth="170" Margin="0,0,32,0" />
+                        <CheckBox Content="Wrist movement moves the cursor" IsChecked="{Binding MovePointer}" VerticalAlignment="Center" />
+                    </WrapPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:MappingRow}">
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="280" />
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource Caption}" />
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <TextBox Text="{Binding Keys, UpdateSourceTrigger=LostFocus}" Visibility="{Binding ShowKeys, Converter={StaticResource BoolToVisibility}}"
+                                                 ToolTip="e.g. Ctrl+Win+Right, MediaPlayPause, or a macro: Ctrl+C, wait 100, Ctrl+V" />
+                                        <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding Profile}" HorizontalAlignment="Left" MinWidth="200"
+                                                  Visibility="{Binding ShowProfile, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock Text="{Binding Error}" Foreground="#D13438" TextWrapping="Wrap" FontSize="12" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Why these gestures" Style="{StaticResource SectionHeader}" />
+                        <TextBlock TextWrapping="Wrap" LineHeight="21"
+                                   Text="Only inputs the watch can detect reliably are offered: touches on the pad, on-screen buttons, the Crown, and the system Double Tap on watches that have it. A wrist flick is detected from acceleration spikes; it is off by default on the watch because ordinary pointing can trigger it. A watch shake can't be told apart from pointing reliably, so it isn't offered; map Escape to a swipe or remote button instead." />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

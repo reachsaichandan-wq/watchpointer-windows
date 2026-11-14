@@ -1,0 +1,51 @@
+name: Windows receiver
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["WatchApp/**", "**.md"]
+  pull_request:
+    paths-ignore: ["WatchApp/**", "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore WatchPointer.slnx
+
+      - name: Build
+        run: dotnet build WatchPointer.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Tests/WatchPointer.Core.Tests -c Release --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
+
+      - name: Engine benchmark (simulated watch)
+        run: dotnet run --project WindowsApp/WatchPointer.Tool -c Release --no-build -- bench --seconds 30
+
+      - name: Publish app (framework-dependent, single folder)
+        run: dotnet publish WindowsApp/WatchPointer.App -c Release -r win-x64 --self-contained false -o artifacts/WatchPointer-win-x64
+
+      - name: Publish command-line tool
+        run: dotnet publish WindowsApp/WatchPointer.Tool -c Release -r win-x64 --self-contained false -o artifacts/WatchPointer-win-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WatchPointer-win-x64
+          path: artifacts/WatchPointer-win-x64
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults

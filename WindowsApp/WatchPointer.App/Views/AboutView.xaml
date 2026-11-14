@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:AboutViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="820">
+                <TextBlock Text="About" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="{Binding Version}" Style="{StaticResource PageSubtitle}" />
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="WatchPointer for Windows" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Text="{Binding Credits}" TextWrapping="Wrap" Margin="0,0,0,10" LineHeight="21" />
+                        <TextBlock Text="{Binding License}" TextWrapping="Wrap" LineHeight="21" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="How it works" Style="{StaticResource SectionHeader}" />
+                        <TextBlock TextWrapping="Wrap" LineHeight="22">
+                            <Run Text="Watch: reads gravity and the gyroscope 100 times a second. Up/down comes from gravity, so it never drifts; left/right adds up turns around the vertical. Each sample carries the watch's own timestamp." /><LineBreak /><LineBreak />
+                            <Run Text="PC: hosts a Bluetooth LE GATT service (watchOS can only be a BLE central), projects the aim onto the screen like a laser hitting a wall, smooths it with a 1€ filter using the watch's timestamps, and moves the cursor 240 times a second with SendInput on its own high-priority thread. Clicks land where you were pointing the moment your thumb touched the watch, so the tap's jolt doesn't move them." />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Security" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Text="{Binding Security}" TextWrapping="Wrap" LineHeight="21" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

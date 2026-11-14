@@ -1,0 +1,78 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="1040">
+                <TextBlock Text="Diagnostics" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="Every number here is measured on this PC; nothing is estimated unless it says so." Style="{StaticResource PageSubtitle}" />
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Live metrics" Style="{StaticResource SectionHeader}" />
+                        <ItemsControl ItemsSource="{Binding Metrics}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="340" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Value}" FontFamily="Cascadia Mono, Consolas" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Meaning}" Style="{StaticResource Caption}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Content="Reset statistics" Command="{Binding ResetStatisticsCommand}" Padding="14,8" Margin="0,0,8,0" />
+                            <Button Content="Copy report" Command="{Binding CopyReportCommand}" Padding="14,8" Margin="0,0,8,0" />
+                            <Button Content="Open log folder" Command="{Binding OpenLogFolderCommand}" Padding="14,8" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Simulator (no watch needed)" Style="{StaticResource SectionHeader}" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                       Text="A virtual watch sends real protocol packets at 100 Hz, with hand tremor and Bluetooth-style burst delivery, through the same decoder, filter and cursor loop. Preview mode draws the result here without touching your cursor." />
+                            <WrapPanel>
+                                <ComboBox ItemsSource="{Binding Patterns}" SelectedItem="{Binding Pattern}" MinWidth="160" Margin="0,0,12,0" />
+                                <CheckBox Content="Move the real cursor" IsChecked="{Binding SimulateLive}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <Button Command="{Binding ToggleSimulationCommand}" Padding="14,8"
+                                        Content="{Binding Simulating, Converter={StaticResource BoolToText}, ConverterParameter='Stop simulator|Start simulator'}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
+                                       Text="Live mode takes over the mouse: stop it with the button, the tray menu, or the pause hotkey." />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="240" Height="135" CornerRadius="6" BorderThickness="1" Margin="24,0,0,0" VerticalAlignment="Top"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                            <Canvas ClipToBounds="True">
+                                <Ellipse Width="10" Height="10" Fill="#0078D4"
+                                         Visibility="{Binding Simulating, Converter={StaticResource BoolToVisibility}}"
+                                         Canvas.Left="{Binding PreviewX, Converter={StaticResource FractionToOffset}, ConverterParameter='240,10'}"
+                                         Canvas.Top="{Binding PreviewY, Converter={StaticResource FractionToOffset}, ConverterParameter='135,10'}" />
+                            </Canvas>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Log" Style="{StaticResource SectionHeader}" />
+                        <ListBox ItemsSource="{Binding LogLines}" Height="260" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                 BorderThickness="0" Background="Transparent" VirtualizingPanel.IsVirtualizing="True" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

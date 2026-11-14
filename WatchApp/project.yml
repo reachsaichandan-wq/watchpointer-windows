@@ -1,0 +1,45 @@
+# XcodeGen spec for the watch app (https://github.com/yonaskolb/XcodeGen, free and open source).
+# Generate the Xcode project on a Mac or a CI macOS runner with:
+#   brew install xcodegen && cd WatchApp && xcodegen generate
+# The generated WatchPointer.xcodeproj is not committed (it is reproducible from this file).
+name: WatchPointer
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    watchOS: "11.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+packages:
+  WatchCore:
+    path: WatchCore
+targets:
+  WatchPointer:
+    # Single-target, watch-only app (watchOS 7+ style): no iPhone companion app needed.
+    type: application
+    platform: watchOS
+    sources:
+      - path: WatchPointer
+    dependencies:
+      - package: WatchCore
+    settings:
+      base:
+        # Change this to something of your own before signing (free Apple IDs need a unique identifier).
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.watchpointer.windows
+        PRODUCT_NAME: WatchPointer
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: WatchPointer
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Sends pointer movement to your PC over Bluetooth."
+        INFOPLIST_KEY_WKApplication: YES
+        INFOPLIST_KEY_WKWatchOnly: YES
+        TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        # Set DEVELOPMENT_TEAM (your Personal Team ID) when building on a Mac, e.g. via xcodebuild DEVELOPMENT_TEAM=XXXXXXXXXX.
+        DEVELOPMENT_TEAM: ""
+        ENABLE_PREVIEWS: YES
+    scheme:
+      gatherCoverageData: false

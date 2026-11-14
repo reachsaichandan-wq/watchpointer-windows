@@ -1,0 +1,124 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="980" HorizontalAlignment="Stretch">
+                <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="Hold the watch like a remote, top edge (12 o'clock) toward the screen. Point to move, tap to click, hold to drag, turn the Crown to scroll."
+                           Style="{StaticResource PageSubtitle}" />
+
+                <!-- Status cards -->
+                <UniformGrid Columns="2" Margin="-6,0,-6,0">
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Apple Watch" Style="{StaticResource Caption}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,4">
+                                <Ellipse Style="{StaticResource StatusDot}" Width="12" Height="12" Fill="{Binding WatchTone, Converter={StaticResource ToneToBrush}}" />
+                                <TextBlock Text="{Binding WatchStatus}" Style="{StaticResource BigValue}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding WatchDetail}" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Bluetooth" Style="{StaticResource Caption}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,4">
+                                <Ellipse Style="{StaticResource StatusDot}" Width="12" Height="12" Fill="{Binding BluetoothTone, Converter={StaticResource ToneToBrush}}" />
+                                <TextBlock Text="{Binding BluetoothStatus}" Style="{StaticResource BigValue}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding BluetoothDetail}" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <UniformGrid Columns="4" Margin="-6,0,-6,0">
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Battery" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Battery}" Style="{StaticResource BigValue}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Motion updates" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding SampleRate}" Style="{StaticResource BigValue}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Latency (measured)" Style="{StaticResource Caption}" />
+                            <TextBlock Text="{Binding Latency}" Style="{StaticResource BigValue}" Margin="0,6,0,0" />
+                            <TextBlock Text="{Binding LatencyDetail}" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6,0,6,12">
+                        <StackPanel>
+                            <TextBlock Text="Pointer mode" Style="{StaticResource Caption}" />
+                            <RadioButton Content="Absolute (laser)" IsChecked="{Binding AbsoluteMode}" Margin="0,6,0,0" GroupName="dashMode" />
+                            <RadioButton Content="Relative (air mouse)" IsChecked="{Binding AbsoluteMode, Converter={StaticResource InverseBool}}" GroupName="dashMode" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Controls -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Controls" Style="{StaticResource SectionHeader}" />
+                            <WrapPanel>
+                                <Button Command="{Binding RecenterCommand}" Margin="0,0,8,8" Padding="14,8" ToolTip="The watch's current aim becomes the middle of the screen">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE81D;" Style="{StaticResource IconButtonText}" /><TextBlock Text="Recenter" /></StackPanel>
+                                </Button>
+                                <Button Command="{Binding TogglePauseCommand}" Margin="0,0,8,8" Padding="14,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE769;" Style="{StaticResource IconButtonText}" />
+                                        <TextBlock Text="{Binding Paused, Converter={StaticResource BoolToText}, ConverterParameter='Resume pointer|Pause pointer'}" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ToggleLaserCommand}" Margin="0,0,8,8" Padding="14,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE7C9;" Style="{StaticResource IconButtonText}" />
+                                        <TextBlock Text="{Binding Laser, Converter={StaticResource BoolToText}, ConverterParameter='Hide laser dot|Show laser dot'}" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ToggleReceiverCommand}" Margin="0,0,8,8" Padding="14,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE702;" Style="{StaticResource IconButtonText}" />
+                                        <TextBlock Text="{Binding ReceiverRunning, Converter={StaticResource BoolToText}, ConverterParameter='Stop receiver|Start receiver'}" />
+                                    </StackPanel>
+                                </Button>
+                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="Active profile" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding SelectedProfile}" MinWidth="200" />
+                            </StackPanel>
+                            <TextBlock Text="Hotkeys (default): Ctrl+Alt+P pause · Ctrl+Alt+C recenter · Ctrl+Alt+L laser · Ctrl+Alt+N next profile"
+                                       Style="{StaticResource Caption}" Margin="0,12,0,0" />
+                        </StackPanel>
+
+                        <!-- Live aim preview over the whole desktop -->
+                        <StackPanel Grid.Column="1" Margin="24,0,0,0">
+                            <TextBlock Text="Cursor on desktop" Style="{StaticResource Caption}" Margin="0,0,0,6" />
+                            <Border Width="240" Height="135" CornerRadius="6" BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                <Canvas ClipToBounds="True">
+                                    <Line X1="120" Y1="0" X2="120" Y2="135" Stroke="{DynamicResource CardStrokeColorDefaultBrush}" />
+                                    <Line X1="0" Y1="67" X2="240" Y2="67" Stroke="{DynamicResource CardStrokeColorDefaultBrush}" />
+                                    <Ellipse Width="12" Height="12" Fill="#FF463C"
+                                             Canvas.Left="{Binding AimX, Converter={StaticResource FractionToOffset}, ConverterParameter='240,12'}"
+                                             Canvas.Top="{Binding AimY, Converter={StaticResource FractionToOffset}, ConverterParameter='135,12'}" />
+                                </Canvas>
+                            </Border>
+                            <TextBlock Text="{Binding AimText}" Style="{StaticResource Caption}" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

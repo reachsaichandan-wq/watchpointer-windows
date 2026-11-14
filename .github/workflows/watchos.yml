@@ -1,0 +1,83 @@
+name: watchOS app
+
+# Builds the watch app on GitHub's macOS runners, which are free for public repositories
+# (private repositories consume the account's included minutes at a higher macOS rate).
+# The output is UNSIGNED: it proves the code compiles and the tests pass. Installing on a real
+# Apple Watch still needs code signing (see docs/WATCH_INSTALL.md).
+
+on:
+  push:
+    branches: [main]
+    paths: ["WatchApp/**", "Shared/**", ".github/workflows/watchos.yml"]
+  pull_request:
+    paths: ["WatchApp/**", "Shared/**", ".github/workflows/watchos.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests-linux:
+    # Pure-Swift logic (protocol, aim math, gestures) on the cheapest runner.
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        working-directory: WatchApp/WatchCore
+        run: swift test
+
+  build-watch-app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode and SDKs
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i watch
+
+      - name: Core tests on macOS
+        working-directory: WatchApp/WatchCore
+        run: swift test
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: WatchApp
+        run: xcodegen generate
+
+      - name: Build for watchOS Simulator
+        working-directory: WatchApp
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPointer.xcodeproj -scheme WatchPointer \
+            -destination 'generic/platform=watchOS Simulator' \
+            -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO | tee build-sim.log | tail -n 40
+
+      - name: Build for watchOS device (unsigned)
+        working-directory: WatchApp
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPointer.xcodeproj -scheme WatchPointer \
+            -destination 'generic/platform=watchOS' \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tee build-device.log | tail -n 40
+
+      - name: Package unsigned app
+        working-directory: WatchApp
+        run: |
+          APP=$(find build/device/Build/Products -name "WatchPointer.app" -maxdepth 3 | head -n 1)
+          echo "Built $APP"
+          ditto -c -k --keepParent "$APP" WatchPointer-unsigned-watchos.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WatchPointer-watchOS-unsigned
+          path: |
+            WatchApp/WatchPointer-unsigned-watchos.zip
+            WatchApp/build-*.log

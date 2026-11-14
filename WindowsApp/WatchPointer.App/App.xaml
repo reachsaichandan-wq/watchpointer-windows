@@ -1,0 +1,22 @@
+<Application x:Class="WatchPointer.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:WatchPointer.App"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Views/Styles.xaml" />
+                <ResourceDictionary Source="Views/DashboardView.xaml" />
+                <ResourceDictionary Source="Views/PairingView.xaml" />
+                <ResourceDictionary Source="Views/PointerView.xaml" />
+                <ResourceDictionary Source="Views/CalibrationView.xaml" />
+                <ResourceDictionary Source="Views/GesturesView.xaml" />
+                <ResourceDictionary Source="Views/ProfilesView.xaml" />
+                <ResourceDictionary Source="Views/ShortcutsView.xaml" />
+                <ResourceDictionary Source="Views/DiagnosticsView.xaml" />
+                <ResourceDictionary Source="Views/AboutView.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

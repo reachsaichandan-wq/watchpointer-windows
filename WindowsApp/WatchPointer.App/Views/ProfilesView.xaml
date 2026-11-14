@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:WatchPointer.App.ViewModels">
+    <DataTemplate DataType="{x:Type vm:ProfilesViewModel}">
+        <ScrollViewer Style="{StaticResource Page}">
+            <StackPanel MaxWidth="980">
+                <TextBlock Text="Profiles" Style="{StaticResource PageTitle}" />
+                <TextBlock Style="{StaticResource PageSubtitle}"
+                           Text="A profile maps every watch input to an action. Desktop keeps the original mouse behaviour and adds window management; Presentation sends slide keys and shows a laser dot; Media uses system media and volume keys; Custom is yours to edit. Switch with the dashboard, a gesture, or Ctrl+Alt+N." />
+
+                <Border Style="{StaticResource Card}">
+                    <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding Selected}" BorderThickness="0" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ProfileItem}">
+                                <StackPanel Margin="4,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="  ·  active" Foreground="#2EA043" FontWeight="SemiBold"
+                                                   Visibility="{Binding Active, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock Text="{Binding Kind, StringFormat='  ·  {0}'}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Selected.Name, StringFormat='Selected: {0}'}" Style="{StaticResource SectionHeader}" />
+                        <WrapPanel Margin="0,0,0,10">
+                            <Button Content="Make active" Command="{Binding ActivateCommand}" Padding="14,8" Margin="0,0,8,8" />
+                            <Button Content="Reset built-in" Command="{Binding ResetBuiltInCommand}" Padding="14,8" Margin="0,0,8,8" />
+                            <Button Content="Delete" Command="{Binding DeleteCommand}" Padding="14,8" Margin="0,0,8,8" />
+                        </WrapPanel>
+                        <CheckBox Content="Show the laser dot while this profile is active" IsChecked="{Binding LaserPointer}" Margin="0,0,0,12" />
+                        <WrapPanel>
+                            <TextBox Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" MinWidth="240" Margin="0,0,8,8" ToolTip="Name for a new or renamed profile" />
+                            <Button Content="Duplicate as new profile" Command="{Binding DuplicateCommand}" Padding="14,8" Margin="0,0,8,8" />
+                            <Button Content="Rename" Command="{Binding RenameCommand}" Padding="14,8" Margin="0,0,8,8" />
+                        </WrapPanel>
+                        <TextBlock Text="{Binding Message}" Style="{StaticResource Caption}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

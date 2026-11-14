@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/WatchPointer.Core.Tests/WatchPointer.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/WindowsApp/">
+    <Project Path="WindowsApp/WatchPointer.App/WatchPointer.App.csproj" />
+    <Project Path="WindowsApp/WatchPointer.Core/WatchPointer.Core.csproj" />
+    <Project Path="WindowsApp/WatchPointer.Platform/WatchPointer.Platform.csproj" />
+    <Project Path="WindowsApp/WatchPointer.Tool/WatchPointer.Tool.csproj" />
+  </Folder>
+</Solution>

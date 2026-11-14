@@ -1,0 +1,39 @@
+{
+  "comment": "Shared WatchPointer BLE protocol test vectors. Used by the C# tests (Tests/WatchPointer.Core.Tests) and the Swift tests (WatchApp/WatchCore/Tests). hex = bytes written by the watch to the input characteristic. For kind 6 (info) the bytes are [0x06] + UTF-8 of 'json'.",
+  "protocolVersion": 2,
+  "valid": [
+    { "name": "aim_center_with_time", "hex": "0000000000d204", "expect": { "kind": "aim", "a": 0, "b": 0, "ms": 1234 } },
+    { "name": "aim_left_up", "hex": "001a04f3fdffff", "expect": { "kind": "aim", "a": 1050, "b": -525, "ms": 65535 } },
+    { "name": "aim_legacy_no_time", "hex": "0064009cff", "expect": { "kind": "aim", "a": 100, "b": -100 } },
+    { "name": "aim_extreme_heading", "hex": "0050460000e803", "expect": { "kind": "aim", "a": 18000, "b": 0, "ms": 1000 } },
+    { "name": "left_click_touchdown", "hex": "01000000003930", "expect": { "kind": "leftClick", "a": 0, "b": 0, "ms": 12345 } },
+    { "name": "left_click_legacy", "hex": "0100000000", "expect": { "kind": "leftClick", "a": 0, "b": 0 } },
+    { "name": "right_click_touchdown", "hex": "0200000000e803", "expect": { "kind": "rightClick", "a": 0, "b": 0, "ms": 1000 } },
+    { "name": "scroll_up", "hex": "0364000000", "expect": { "kind": "scroll", "a": 100, "b": 0 } },
+    { "name": "scroll_down_and_left_v2", "hex": "039cfff6ff", "expect": { "kind": "scroll", "a": -100, "b": -10 } },
+    { "name": "center", "hex": "0400000000", "expect": { "kind": "center", "a": 0, "b": 0 } },
+    { "name": "pause_on", "hex": "0501000000", "expect": { "kind": "pause", "a": 1, "b": 0 } },
+    { "name": "pause_off", "hex": "0500000000", "expect": { "kind": "pause", "a": 0, "b": 0 } },
+    { "name": "drag_grab_touchdown", "hex": "0701000000e803", "expect": { "kind": "drag", "a": 1, "b": 0, "ms": 1000 } },
+    { "name": "drag_drop", "hex": "0700000000", "expect": { "kind": "drag", "a": 0, "b": 0 } },
+    { "name": "gesture_swipe_left_v2", "hex": "0801000000", "expect": { "kind": "gesture", "a": 1, "b": 0 } },
+    { "name": "gesture_button_a_v2", "hex": "08100000001027", "expect": { "kind": "gesture", "a": 16, "b": 0, "ms": 10000 } },
+    { "name": "pong_v2", "hex": "09070000001027", "expect": { "kind": "pong", "a": 7, "b": 0, "ms": 10000 } },
+    { "name": "info_original_watch", "kind": 6, "json": "{\"model\":\"Watch7,5\",\"os\":\"11.0\",\"battery\":80,\"charging\":false,\"name\":\"Sam's Watch\"}", "expect": { "kind": "info", "model": "Watch7,5", "os": "11.0", "battery": 80, "charging": false, "name": "Sam's Watch", "proto": 1 } },
+    { "name": "info_v2_watch", "kind": 6, "json": "{\"model\":\"Watch7,17\",\"os\":\"26.1\",\"battery\":-1,\"charging\":true,\"name\":\"Watch\",\"proto\":2,\"app\":\"1.0.0\"}", "expect": { "kind": "info", "model": "Watch7,17", "os": "26.1", "battery": -1, "charging": true, "name": "Watch", "proto": 2 } }
+  ],
+  "invalid": [
+    { "name": "empty", "hex": "", "error": "Empty" },
+    { "name": "too_short", "hex": "0001", "error": "TooShort" },
+    { "name": "unknown_kind", "hex": "ff00000000", "error": "UnknownKind" },
+    { "name": "bad_json", "hex": "067b", "error": "BadInfo" },
+    { "name": "aim_out_of_range", "hex": "00204e00000000", "error": "OutOfRange" },
+    { "name": "elevation_out_of_range", "hex": "000000e0b1", "error": "OutOfRange" },
+    { "name": "unknown_gesture", "hex": "08ff000000", "error": "OutOfRange" },
+    { "name": "too_long", "hex": "00000000000000000000000000000000000000000000", "error": "TooLong" }
+  ],
+  "notifications": [
+    { "name": "ping", "hex": "010700", "expect": { "type": "ping", "seq": 7 } },
+    { "name": "state_paused_presentation", "hex": "020150726573656e746174696f6e", "expect": { "type": "state", "flags": 1, "profile": "Presentation" } }
+  ]
+}

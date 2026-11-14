@@ -75,9 +75,45 @@ jobs:
           echo "Built $APP"
           ditto -c -k --keepParent "$APP" WatchPointer-unsigned-watchos.zip
 
+      - name: Build iPhone app with embedded watch app (unsigned)
+        working-directory: WatchApp
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPointer.xcodeproj -scheme WatchPointerPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/phone \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tee build-phone.log | tail -n 40
+
+      - name: Package and check unsigned .ipa
+        working-directory: WatchApp
+        run: |
+          set -euo pipefail
+          APP=$(find build/phone/Build/Products/Release-iphoneos -maxdepth 1 -name "WatchPointerPhone.app" | head -n 1)
+          test -n "$APP"
+          WATCH="$APP/Watch/WatchPointer.app"
+          echo "Checking $WATCH"
+          test -d "$WATCH" || { echo "::error::Watch app is not embedded in the iPhone app"; ls -la "$APP"; exit 1; }
+          echo "iPhone bundle id: $(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")"
+          echo "Watch bundle id:  $(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$WATCH/Info.plist")"
+          echo "Watch companion:  $(/usr/libexec/PlistBuddy -c 'Print WKCompanionAppBundleIdentifier' "$WATCH/Info.plist")"
+          echo "Watch platform:   $(/usr/libexec/PlistBuddy -c 'Print DTPlatformName' "$WATCH/Info.plist")"
+          lipo -info "$WATCH/WatchPointer"
+          rm -rf ipa && mkdir -p ipa/Payload
+          cp -R "$APP" ipa/Payload/
+          (cd ipa && zip -qry ../WatchPointer-unsigned.ipa Payload)
+          unzip -l WatchPointer-unsigned.ipa | grep -E "Watch/WatchPointer.app/(WatchPointer|Info.plist)$"
+          ls -la WatchPointer-unsigned.ipa
+
       - uses: actions/upload-artifact@v4
         with:
           name: WatchPointer-watchOS-unsigned
           path: |
             WatchApp/WatchPointer-unsigned-watchos.zip
             WatchApp/build-*.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WatchPointer-unsigned-ipa
+          path: WatchApp/WatchPointer-unsigned.ipa

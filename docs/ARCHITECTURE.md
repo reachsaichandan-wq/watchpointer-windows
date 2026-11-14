@@ -13,6 +13,7 @@ WatchPointer/
 │       ├── Gestures/ClickPad.swift  pad → PadGestureClassifier → packets
 │       ├── Settings/ · Views/       SwiftUI screens (remote, pairing, remote buttons, settings, calibrate)
 │       └── WatchPointerApp.swift    Session: glue + battery-aware motion lifecycle
+│   └── WatchPointerPhone/           minimal iPhone app that embeds the watch app (for .ipa / sideloading / TestFlight)
 ├── WindowsApp/
 │   ├── WatchPointer.Core/           net10.0, no Windows APIs → unit-testable
 │   │   ├── Protocol/                packets, codec, validation, info JSON

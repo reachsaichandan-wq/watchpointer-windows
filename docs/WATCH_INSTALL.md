@@ -22,9 +22,9 @@ and the receiver has a built-in simulator.
 
 Not supported / not recommended:
 
-- **Sideloading tools on Windows (AltStore, Sideloadly, …)** install iOS apps with a free Apple ID. Installing a
-  watch-only watchOS app this way is not something this project has verified, and these tools have historically not
-  supported Apple Watch apps. Don't count on it.
+- **Mainstream sideloading tools on Windows (Sideloadly, AltStore, SideStore)** install iPhone apps with a free Apple
+  ID but, as of November 2026, don't install the embedded Apple Watch app (see section 2c for details and the one
+  experimental route that reportedly does).
 - **macOS virtual machines on non-Apple hardware** are against Apple's macOS licence. Not documented here.
 - **Xcode Cloud / paid cloud Macs**: work, but cost money; not required by this project.
 
@@ -38,8 +38,14 @@ Not supported / not recommended:
    - installs [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generates `WatchPointer.xcodeproj` from
      `WatchApp/project.yml`;
    - builds for the watchOS Simulator and for a generic watchOS device with signing disabled;
-   - uploads `WatchPointer-unsigned-watchos.zip` and the build logs.
-3. The unsigned app proves the code compiles. **It can't be installed on a watch as is.**
+   - builds the small iPhone companion app with the watch app embedded (`Payload/WatchPointerPhone.app/Watch/
+     WatchPointer.app`) and checks the layout;
+   - uploads `WatchPointer-unsigned-watchos.zip`, **`WatchPointer-unsigned.ipa`** and the build logs.
+3. Download artifacts from the run page (Actions → the run → *Artifacts*), signed in to GitHub. The builds are
+   **unsigned**: a sideloading tool or Xcode must sign them before a device accepts them.
+
+The iPhone app does nothing except carry the watch app (the watch app runs on its own and talks to the PC directly);
+it exists because sideloading tools and TestFlight work with iPhone `.ipa` files.
 
 ## 2a. Install with a Mac and a free Apple ID
 
@@ -49,8 +55,10 @@ Needs about 30 minutes on a Mac, then repeats every 7 days.
    `brew install xcodegen`.
 2. `git clone` your repository, `cd WatchApp`, `xcodegen generate`, open `WatchPointer.xcodeproj`.
 3. Xcode › Settings › Accounts: add your Apple ID (creates a free *Personal Team*).
-4. Target *WatchPointer* › Signing & Capabilities: choose your Personal Team; change the bundle identifier to
-   something unique, e.g. `com.<yourname>.watchpointer`.
+4. Signing & Capabilities for **both** targets: choose your Personal Team and change the bundle identifiers to
+   something unique, keeping the watch's as the iPhone's plus a suffix, e.g. `com.<yourname>.watchpointer` (target
+   *WatchPointerPhone*) and `com.<yourname>.watchpointer.watchkitapp` (target *WatchPointer*). Also update
+   `WKCompanionAppBundleIdentifier` in `project.yml` (or the watch target's Info) to the iPhone identifier.
 5. Enable Developer Mode: on the iPhone (Settings › Privacy & Security › Developer Mode) and on the watch
    (Settings › Privacy & Security › Developer Mode). Connect the iPhone to the Mac; keep the watch near it, unlocked.
 6. Select your Apple Watch as the run destination and press ⌘R. The first install can take several minutes.
@@ -65,6 +73,34 @@ limited number of apps and App IDs per week, no TestFlight / App Store distribut
 uploads to TestFlight. Set the secrets listed at the top of the workflow, create the app record in App Store Connect,
 run the workflow, then install from the TestFlight app on your iPhone (watch apps appear there). This project could
 not test it without a paid account, so treat it as a starting point.
+
+## 2c. Windows only, free Apple ID — experimental, unverified
+
+Status in November 2026, from public reports (not tested by this project):
+
+| Tool | Installs the embedded watch app? |
+|---|---|
+| Sideloadly | No (reported: free accounts don't handle watch apps) |
+| SideStore | No: its provisioning profile omits the watch's device ID → install error `0xe8008015` |
+| AltStore (Windows) | Reported to fail at Apple ID sign-in after Apple's October 2026 login change |
+| iloader / isideload, community "Watch" branch | **One report of success** (Apple Watch Series 10, watchOS 27.2), in [HermesEnabler issue #54](https://github.com/pookjw/HermesEnabler/issues/54), 12 Nov 2026 |
+
+That report's route, in short (read the issue for the details; it's the author's own account):
+
+1. Install iTunes (for Apple's USB drivers). iPhone: Developer Mode on, connected by USB. Watch: Developer Mode on
+   (the author used an experimental script from a third-party `xtool` branch to reveal the setting).
+2. Build the installer: the community iloader branch with isideload patched so the watch app's provisioning profile
+   includes the watch, compiled into a small command-line tool. There is no ready-made download.
+3. Run the tool on the **unmodified** `.ipa` (`WatchPointer-unsigned.ipa` from CI), sign in with the Apple ID and
+   2-factor code. If it reports error 7460 (certificate limit), the free account's existing development certificate
+   must be revoked — which stops other apps signed with it (e.g. AltStore) until they're re-signed.
+4. Re-run every 7 days (free certificates expire).
+
+**Security:** these tools send your Apple ID password and 2-factor code from third-party code, and that route used a
+third-party "anisette" server. Use a secondary Apple ID, not your main one. Nothing here is endorsed by Apple, and it
+can break whenever Apple changes its sign-in or provisioning services.
+
+If you try it with WatchPointer, please report the result (issue on this repository) so this table can be updated.
 
 ## 3. First run
 

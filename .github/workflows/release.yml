@@ -146,6 +146,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ needs.windows.outputs.version }}"
+          if gh release view "v${V}" >/dev/null 2>&1; then
+            # e.g. a draft made by a manual run was published, which created this tag: keep its verified files.
+            echo "::notice::Release v${V} already exists; not replacing its files."
+            exit 0
+          fi
           DRAFT=""
           [ "${{ github.event_name }}" = "workflow_dispatch" ] && DRAFT="--draft"
           cat > notes.md <<EOF

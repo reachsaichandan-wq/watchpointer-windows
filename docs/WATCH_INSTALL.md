@@ -74,6 +74,31 @@ uploads to TestFlight. Set the secrets listed at the top of the workflow, create
 run the workflow, then install from the TestFlight app on your iPhone (watch apps appear there). This project could
 not test it without a paid account, so treat it as a starting point.
 
+## Why the watch app may not appear after sideloading (diagnosed with Sideloadly, Nov 2026)
+
+iOS offers an embedded watch app in *Watch app › My Watch › Available Apps* only when:
+
+1. the watch app sits at `Payload/<iPhone app>.app/Watch/<watch app>.app`;
+2. its `WKCompanionAppBundleIdentifier` equals the iPhone app's `CFBundleIdentifier`;
+3. its own `CFBundleIdentifier` starts with the iPhone app's identifier plus `.`;
+4. **both** apps are signed, and the watch app's provisioning profile includes the **watch's** device ID.
+
+The CI-built `.ipa` satisfies 1–3; check any `.ipa` yourself with `dotnet run tools/inspect-ipa.cs -- file.ipa`
+(Windows) or `tools/verify-ipa.sh file.ipa` (macOS). It is unsigned, so 4 depends entirely on the signing tool.
+
+Observed with Sideloadly and a free Apple ID: it installed the iPhone app as `<bundle id>.<TEAMID>` (it appended the
+team ID), but didn't rewrite the watch app's `WKCompanionAppBundleIdentifier`. Rules 2 and 3 then fail, and iOS
+silently doesn't offer the watch app. Reports also say its free-account profiles omit the watch's device ID (rule 4).
+
+What to do:
+
+- If your signing tool lets you keep the original bundle ID, keep it (the default is
+  `com.sandareddysaichandan.watchpointer`).
+- Or build an `.ipa` whose ID is already what the tool will use: Actions › *watchOS app* › Run workflow, set
+  **bundle_id** (e.g. the exact ID the tool installed last time), then sign that `.ipa` without changing its ID.
+- If the watch app still doesn't appear, the tool isn't provisioning the watch; use Xcode (2a), TestFlight (2b) or
+  the watch-aware route below (2c).
+
 ## 2c. Windows only, free Apple ID — experimental, unverified
 
 Status in November 2026, from public reports (not tested by this project):

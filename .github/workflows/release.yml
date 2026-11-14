@@ -116,6 +116,7 @@ jobs:
           test -d "$APP/Watch/WatchPointer.app"
           mkdir -p ipa/Payload && cp -R "$APP" ipa/Payload/
           (cd ipa && zip -qry "../../WatchPointer-$V-unsigned.ipa" Payload)
+          bash ../tools/verify-ipa.sh "../WatchPointer-$V-unsigned.ipa"
 
       - uses: actions/attest-build-provenance@v2
         with:

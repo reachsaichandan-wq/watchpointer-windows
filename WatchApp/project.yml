@@ -9,7 +9,7 @@
 # WatchPointer (watch) scheme straight onto the watch.
 name: WatchPointer
 options:
-  bundleIdPrefix: com.example
+  bundleIdPrefix: com.sandareddysaichandan
   deploymentTarget:
     watchOS: "11.0"
     iOS: "18.0"
@@ -23,6 +23,10 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # Set DEVELOPMENT_TEAM (your Team ID) when signing on a Mac, e.g. xcodebuild DEVELOPMENT_TEAM=XXXXXXXXXX.
     DEVELOPMENT_TEAM: ""
+    # Single source of truth for the bundle identifiers. The watch app's ID and its WKCompanionAppBundleIdentifier
+    # are derived from it, so they always match the iPhone app (iOS silently refuses to offer a watch app whose IDs
+    # don't line up). Override for a whole build with: xcodebuild ... WP_BUNDLE_ID=com.yourname.watchpointer
+    WP_BUNDLE_ID: com.sandareddysaichandan.watchpointer
 packages:
   WatchCore:
     path: WatchCore
@@ -37,14 +41,14 @@ targets:
       - package: WatchCore
     settings:
       base:
-        # Must start with the iPhone app's identifier. Change both to something of your own before signing.
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.watchpointer.windows.watchkitapp
+        # Derived from WP_BUNDLE_ID: must be the iPhone app's identifier plus a suffix.
+        PRODUCT_BUNDLE_IDENTIFIER: $(WP_BUNDLE_ID).watchkitapp
         PRODUCT_NAME: WatchPointer
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: WatchPointer
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Sends pointer movement to your PC over Bluetooth."
         INFOPLIST_KEY_WKApplication: YES
-        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.example.watchpointer.windows
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: $(WP_BUNDLE_ID)
         # The watch app never needs the iPhone app at runtime.
         INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp: YES
         TARGETED_DEVICE_FAMILY: "4"
@@ -69,7 +73,7 @@ targets:
           subpath: "$(CONTENTS_FOLDER_PATH)/Watch"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.watchpointer.windows
+        PRODUCT_BUNDLE_IDENTIFIER: $(WP_BUNDLE_ID)
         PRODUCT_NAME: WatchPointerPhone
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: WatchPointer
